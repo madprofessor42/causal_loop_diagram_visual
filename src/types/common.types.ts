@@ -27,20 +27,3 @@ export interface Rect {
   width: number;
   height: number;
 }
-
-/**
- * Transform state from zoom/pan
- */
-export interface TransformState {
-  scale: number;
-  positionX: number;
-  positionY: number;
-}
-
-/**
- * Drag data payload for dnd-kit
- */
-export interface DragData {
-  type: 'variable-template' | 'variable';
-  variableId?: string;
-}

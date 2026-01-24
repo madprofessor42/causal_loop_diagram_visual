@@ -1,0 +1,72 @@
+/**
+ * CausalLoopDiagram component styles
+ */
+
+.wrapper {
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+/* Override React Flow default styles */
+:global(.react-flow__node-variable) {
+  /* Remove default node styling */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  width: auto;
+  font-size: inherit;
+}
+
+/* Custom controls styling */
+:global(.react-flow__controls) {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+:global(.react-flow__controls-button) {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #e9ecef;
+}
+
+:global(.react-flow__controls-button:hover) {
+  background: #f8f9fa;
+}
+
+:global(.react-flow__controls-button:last-child) {
+  border-bottom: none;
+}
+
+/* MiniMap styling */
+:global(.react-flow__minimap) {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Edge styling */
+:global(.react-flow__edge-path) {
+  stroke: #868e96;
+  stroke-width: 2px;
+}
+
+:global(.react-flow__edge.selected .react-flow__edge-path) {
+  stroke: #339af0;
+  stroke-width: 3px;
+}
+
+/* Connection line styling */
+:global(.react-flow__connection-line) {
+  stroke: #339af0;
+  stroke-width: 2px;
+  stroke-dasharray: 5, 5;
+}
+
+/* Attribution hiding (if using pro version, keep visible for free) */
+:global(.react-flow__attribution) {
+  font-size: 10px;
+  opacity: 0.5;
+}

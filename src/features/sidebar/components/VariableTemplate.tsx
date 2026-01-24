@@ -1,9 +1,9 @@
 /**
  * VariableTemplate component - Draggable template for creating new variables
+ * Uses HTML5 Drag and Drop API for React Flow compatibility
  */
 
-import { useDraggable } from '@dnd-kit/core';
-import type { DragData } from '../../../types/common.types';
+import { useCallback } from 'react';
 import styles from './VariableTemplate.module.css';
 
 interface VariableTemplateProps {
@@ -13,23 +13,19 @@ interface VariableTemplateProps {
 
 /**
  * Draggable template that can be dropped on the canvas to create a new variable
+ * Uses native HTML5 drag and drop for React Flow compatibility
  */
 export function VariableTemplate({ id, label }: VariableTemplateProps) {
-  const dragData: DragData = {
-    type: 'variable-template',
-  };
-
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id,
-    data: dragData,
-  });
+  const onDragStart = useCallback((event: React.DragEvent) => {
+    event.dataTransfer.setData('application/reactflow', 'variable');
+    event.dataTransfer.effectAllowed = 'move';
+  }, []);
 
   return (
     <div
-      ref={setNodeRef}
-      className={`${styles.container} ${isDragging ? styles.dragging : ''}`}
-      {...listeners}
-      {...attributes}
+      className={styles.container}
+      draggable
+      onDragStart={onDragStart}
     >
       <div className={styles.circle} />
       <span className={styles.label}>{label}</span>
@@ -38,7 +34,7 @@ export function VariableTemplate({ id, label }: VariableTemplateProps) {
 }
 
 /**
- * Overlay component shown while dragging
+ * Overlay component shown while dragging (kept for backward compatibility)
  */
 export function VariableTemplateOverlay() {
   return (

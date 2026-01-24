@@ -1,15 +1,15 @@
 /**
  * Redux store configuration
+ * Note: React Flow manages diagram state internally via hooks.
+ * This store can be used for additional app state if needed.
  */
 
 import { configureStore } from '@reduxjs/toolkit';
-import variablesReducer from '../features/variables/slice/variablesSlice';
-import connectionsReducer from '../features/connections/slice/connectionsSlice';
 
 export const store = configureStore({
   reducer: {
-    variables: variablesReducer,
-    connections: connectionsReducer,
+    // React Flow handles nodes/edges state internally
+    // Add other app-level reducers here if needed
   },
   devTools: import.meta.env.DEV,
 });

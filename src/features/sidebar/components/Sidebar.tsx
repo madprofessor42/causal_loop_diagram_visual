@@ -38,19 +38,25 @@ export function Sidebar() {
             <div className={styles.instructionItem}>
               <span className={styles.instructionNumber}>2</span>
               <p className={styles.instructionText}>
-                Click on a variable edge to draw an arrow
+                Drag from a handle to another node to connect
               </p>
             </div>
             <div className={styles.instructionItem}>
               <span className={styles.instructionNumber}>3</span>
               <p className={styles.instructionText}>
-                Release on another variable to connect
+                Click +/− on connection to change polarity
               </p>
             </div>
             <div className={styles.instructionItem}>
               <span className={styles.instructionNumber}>4</span>
               <p className={styles.instructionText}>
-                Use scroll wheel to zoom in/out
+                Double-click a variable to rename it
+              </p>
+            </div>
+            <div className={styles.instructionItem}>
+              <span className={styles.instructionNumber}>5</span>
+              <p className={styles.instructionText}>
+                Use scroll wheel to zoom, drag canvas to pan
               </p>
             </div>
           </div>
