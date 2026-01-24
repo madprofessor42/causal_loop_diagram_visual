@@ -1,0 +1,74 @@
+/**
+ * VariableTemplate styles
+ */
+
+.container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.container:hover {
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.container:active {
+  cursor: grabbing;
+}
+
+.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #4dabf7;
+  border: 2px solid #339af0;
+  flex-shrink: 0;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+}
+
+/* Drag overlay styles */
+.overlay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #fff;
+  border: 2px solid #339af0;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  cursor: grabbing;
+}
+
+.overlayCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #4dabf7;
+  border: 2px solid #339af0;
+}
+
+.overlayLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+}

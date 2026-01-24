@@ -1,0 +1,47 @@
+/**
+ * Connection (arrow) component styles
+ */
+
+.line {
+  stroke: #495057;
+  stroke-width: 2;
+  fill: none;
+  transition: stroke 0.2s ease;
+}
+
+.line:hover {
+  stroke: #212529;
+  stroke-width: 3;
+}
+
+.lineSelected {
+  stroke: #1971c2;
+  stroke-width: 3;
+}
+
+.lineDrawing {
+  stroke: #868e96;
+  stroke-width: 2;
+  stroke-dasharray: 5, 5;
+}
+
+.arrowhead {
+  fill: #495057;
+  transition: fill 0.2s ease;
+}
+
+.arrowheadSelected {
+  fill: #1971c2;
+}
+
+.arrowheadDrawing {
+  fill: #868e96;
+}
+
+/* Invisible wider path for easier clicking */
+.hitArea {
+  stroke: transparent;
+  stroke-width: 15;
+  fill: none;
+  cursor: pointer;
+}

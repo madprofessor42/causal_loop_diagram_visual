@@ -1,0 +1,113 @@
+/**
+ * Canvas component - The main drawing area for the CLD
+ */
+
+import { useCallback, useRef, useEffect } from 'react';
+import { useDroppable } from '@dnd-kit/core';
+import { useAppDispatch, useAppSelector } from '../../../app/hooks';
+import { selectVariable } from '../../variables/slice/variablesSlice';
+import { updateDrawing, cancelDrawing } from '../../connections/slice/connectionsSlice';
+import { Variable } from '../../variables/components/Variable';
+import { ConnectionsLayer } from '../../connections/components/ConnectionsLayer';
+import type { Position, TransformState } from '../../../types/common.types';
+import { screenToCanvas } from '../../../utils/geometry';
+import styles from './Canvas.module.css';
+
+interface CanvasProps {
+  transform?: TransformState;
+}
+
+const CANVAS_WIDTH = 3000;
+const CANVAS_HEIGHT = 2000;
+
+/**
+ * Main canvas component with drop zone and connection drawing support
+ */
+export function Canvas({ transform }: CanvasProps) {
+  const dispatch = useAppDispatch();
+  const canvasRef = useRef<HTMLDivElement>(null);
+  
+  const variableIds = useAppSelector((state) => state.variables.ids);
+  const variables = useAppSelector((state) => state.variables.items);
+  const isDrawing = useAppSelector((state) => state.connections.drawing?.isDrawing);
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: 'canvas',
+  });
+
+  // Handle click on empty canvas area to deselect
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    // Only deselect if clicking directly on canvas (not a child)
+    if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains(styles.canvas)) {
+      dispatch(selectVariable(null));
+    }
+  }, [dispatch]);
+
+  // Track mouse movement for connection drawing
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDrawing || !canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    // Get mouse position relative to canvas
+    let mousePos: Position = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+
+    // If transform is provided, convert screen coordinates to canvas coordinates
+    if (transform) {
+      mousePos = screenToCanvas(
+        { x: e.clientX - rect.left, y: e.clientY - rect.top },
+        { ...transform, positionX: 0, positionY: 0 }
+      );
+    }
+
+    dispatch(updateDrawing({ tempEndPoint: mousePos }));
+  }, [dispatch, isDrawing, transform]);
+
+  // Handle mouse up on canvas to cancel drawing if not on a variable
+  const handleMouseUp = useCallback(() => {
+    if (isDrawing) {
+      dispatch(cancelDrawing());
+    }
+  }, [dispatch, isDrawing]);
+
+  // Handle escape key to cancel drawing
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDrawing) {
+        dispatch(cancelDrawing());
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dispatch, isDrawing]);
+
+  // Combine refs for both droppable and local ref
+  const setRefs = useCallback((node: HTMLDivElement | null) => {
+    canvasRef.current = node;
+    setNodeRef(node);
+  }, [setNodeRef]);
+
+  return (
+    <div
+      ref={setRefs}
+      className={`${styles.canvas} ${isOver ? styles.canvasDropTarget : ''}`}
+      onClick={handleCanvasClick}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+    >
+      {/* Connections SVG layer */}
+      <ConnectionsLayer width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
+
+      {/* Variables container */}
+      <div className={styles.variablesContainer}>
+        {variableIds.map((id) => (
+          <Variable key={id} variable={variables[id]} />
+        ))}
+      </div>
+    </div>
+  );
+}
