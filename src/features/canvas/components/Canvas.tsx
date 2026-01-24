@@ -5,8 +5,8 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { selectVariable, selectVariablesMap, selectVariableIds } from '../../variables';
-import { updateDrawing, cancelDrawing, selectIsDrawing } from '../../connections';
+import { selectVariable, selectVariablesMap, selectVariableIds, selectSelectedVariableId, removeVariable } from '../../variables';
+import { updateDrawing, cancelDrawing, selectIsDrawing, removeConnectionsByVariableId } from '../../connections';
 import { Variable } from '../../variables/components/Variable';
 import { ConnectionsLayer } from '../../connections/components/ConnectionsLayer';
 import type { Position, TransformState } from '../../../types/common.types';
@@ -28,6 +28,7 @@ export function Canvas({ transform }: CanvasProps) {
   const variableIds = useAppSelector(selectVariableIds);
   const variables = useAppSelector(selectVariablesMap);
   const isDrawing = useAppSelector(selectIsDrawing);
+  const selectedVariableId = useAppSelector(selectSelectedVariableId);
 
   const { setNodeRef, isOver } = useDroppable({
     id: 'canvas',
@@ -71,17 +72,33 @@ export function Canvas({ transform }: CanvasProps) {
     }
   }, [dispatch, isDrawing]);
 
-  // Handle escape key to cancel drawing
+  // Handle keyboard events (escape to cancel drawing, backspace/delete to remove variable)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cancel drawing on Escape
       if (e.key === 'Escape' && isDrawing) {
         dispatch(cancelDrawing());
+        return;
+      }
+      
+      // Delete selected variable on Backspace or Delete
+      if ((e.key === 'Backspace' || e.key === 'Delete') && selectedVariableId) {
+        // Don't delete if user is typing in an input field
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          return;
+        }
+        
+        e.preventDefault();
+        // Remove connections first, then the variable
+        dispatch(removeConnectionsByVariableId(selectedVariableId));
+        dispatch(removeVariable(selectedVariableId));
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dispatch, isDrawing]);
+  }, [dispatch, isDrawing, selectedVariableId]);
 
   // Combine refs for both droppable and local ref
   const setRefs = useCallback((node: HTMLDivElement | null) => {

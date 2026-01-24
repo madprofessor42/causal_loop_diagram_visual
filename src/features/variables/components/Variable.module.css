@@ -10,13 +10,6 @@
   user-select: none;
 }
 
-.circleWrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .circle {
   width: 80px;
   height: 80px;
@@ -26,12 +19,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: move;
+  cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .circle:hover {
   border-color: #228be6;
+  box-shadow: 0 0 0 3px rgba(34, 139, 230, 0.2);
+}
+
+.circle:active {
+  cursor: grabbing;
 }
 
 .selected {
@@ -42,24 +40,6 @@
 .dragging {
   opacity: 0.7;
   cursor: grabbing;
-}
-
-/* Invisible edge zone for arrow drawing */
-.edgeZone {
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  right: -10px;
-  bottom: -10px;
-  border-radius: 50%;
-  cursor: crosshair;
-  pointer-events: auto;
-}
-
-/* Visual indicator when hovering edge zone */
-.edgeZone:hover + .circle {
-  border-color: #f03e3e;
-  box-shadow: 0 0 0 4px rgba(240, 62, 62, 0.2);
 }
 
 .label {

@@ -2,7 +2,7 @@
  * Variable component - A draggable circle representing a CLD variable
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useRef } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
 import { selectVariable, selectSelectedVariableId } from '../slice/variablesSlice';
@@ -19,16 +19,25 @@ interface VariableProps {
 /**
  * Variable component with dragging and connection support
  * Wrapped in memo for performance optimization
+ *
+ * Interaction model:
+ * - Single click: Start drawing connection from this variable OR finish connection if already drawing
+ * - Click and drag: Move the variable
+ * - Double-click: Edit variable name
+ * - Backspace/Delete: Delete selected variable (handled in Canvas)
  */
 export const Variable = memo(function Variable({ variable }: VariableProps) {
   const dispatch = useAppDispatch();
   const selectedId = useAppSelector(selectSelectedVariableId);
   
+  // Track when we just finished drawing to prevent immediately starting a new one
+  const justFinishedDrawingRef = useRef(false);
+  
   // Use custom hooks for complex logic
   const editor = useVariableEditor(variable);
-  const connection = useConnectionDrawing({ 
-    variableId: variable.id, 
-    position: variable.position 
+  const connection = useConnectionDrawing({
+    variableId: variable.id,
+    position: variable.position
   });
 
   const isSelected = selectedId === variable.id;
@@ -38,25 +47,44 @@ export const Variable = memo(function Variable({ variable }: VariableProps) {
     variableId: variable.id,
   };
 
+  // Dragging is always enabled - dnd-kit has activation distance to distinguish click vs drag
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `variable-${variable.id}`,
     data: dragData,
-    disabled: connection.isDrawing,
   });
 
-  // Handle click on variable to select it or finish drawing connection
+  // Handle click on variable:
+  // - If drawing and this is a valid target, finish the connection
+  // - If not drawing, start drawing from this variable
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // If drawing and clicking on a different variable, finish the connection
-    if (connection.isValidTarget) {
-      connection.finishDrawingConnection();
+    // If we just finished drawing, don't start a new one
+    if (justFinishedDrawingRef.current) {
+      justFinishedDrawingRef.current = false;
+      dispatch(selectVariable(variable.id));
       return;
     }
     
-    // Otherwise, just select the variable
+    // If drawing and clicking on a different variable, finish the connection
+    if (connection.isValidTarget) {
+      justFinishedDrawingRef.current = true;
+      connection.finishDrawingConnection();
+      dispatch(selectVariable(variable.id));
+      return;
+    }
+    
+    // If clicking on the source variable while drawing, cancel the drawing
+    if (connection.isDrawingSource) {
+      connection.cancelDrawingConnection();
+      dispatch(selectVariable(variable.id));
+      return;
+    }
+    
+    // If not drawing, select this variable and start drawing from it
     if (!connection.isDrawing) {
       dispatch(selectVariable(variable.id));
+      connection.startDrawingConnection();
     }
   }, [dispatch, variable.id, connection]);
 
@@ -72,34 +100,12 @@ export const Variable = memo(function Variable({ variable }: VariableProps) {
     editor.startEditing();
   }, [connection, editor]);
 
-  // Handle mouse down on edge zone (start or finish drawing connection)
-  const handleEdgeMouseDown = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // Don't start drawing on double-click (detail === 2)
-    if (e.detail >= 2) {
-      return;
-    }
-    
-    e.preventDefault();
-    
-    // If already drawing and clicking on a different variable, finish the connection
-    if (connection.isValidTarget) {
-      connection.finishDrawingConnection();
-      return;
-    }
-    
-    // If not drawing, start drawing from this variable
-    if (!connection.isDrawing) {
-      connection.startDrawingConnection();
-    }
-  }, [connection]);
-
   // Handle mouse up on this variable (finish drawing connection)
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     
     if (connection.isValidTarget) {
+      justFinishedDrawingRef.current = true;
       connection.finishDrawingConnection();
     }
   }, [connection]);
@@ -112,6 +118,7 @@ export const Variable = memo(function Variable({ variable }: VariableProps) {
   // Build class names for circle
   const circleClassName = [
     styles.circle,
+    'no-pan', // Exclude from react-zoom-pan-pinch panning
     isSelected && styles.selected,
     isDragging && styles.dragging,
     connection.isValidTarget && styles.connectionTarget,
@@ -120,30 +127,22 @@ export const Variable = memo(function Variable({ variable }: VariableProps) {
   return (
     <div
       ref={setNodeRef}
-      className={styles.container}
+      className={`${styles.container} no-pan`}
       style={style}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onMouseUp={handleMouseUp}
     >
-      <div className={styles.circleWrapper}>
-        {/* Edge zone for starting connections */}
-        <div
-          className={styles.edgeZone}
-          onMouseDown={handleEdgeMouseDown}
-        />
-        
-        {/* Main circle */}
-        <div
-          className={circleClassName}
-          style={{
-            width: variable.radius * 2,
-            height: variable.radius * 2,
-          }}
-          {...listeners}
-          {...attributes}
-        />
-      </div>
+      {/* Main circle - click to start/finish connection, drag to move */}
+      <div
+        className={circleClassName}
+        style={{
+          width: variable.radius * 2,
+          height: variable.radius * 2,
+        }}
+        {...listeners}
+        {...attributes}
+      />
 
       {/* Label */}
       {editor.isEditing ? (
