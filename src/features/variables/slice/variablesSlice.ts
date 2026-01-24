@@ -2,9 +2,10 @@
  * Redux slice for managing variables in the Causal Loop Diagram
  */
 
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import { nanoid } from 'nanoid';
 import type {
+  Variable,
   VariablesState,
   AddVariablePayload,
   MoveVariablePayload,
@@ -82,6 +83,55 @@ export const variablesSlice = createSlice({
       state.selectedId = action.payload;
     },
   },
+  selectors: {
+    /**
+     * Select all variables as a record
+     */
+    selectVariablesMap: (state) => state.items,
+
+    /**
+     * Select all variable IDs
+     */
+    selectVariableIds: (state) => state.ids,
+
+    /**
+     * Select currently selected variable ID
+     */
+    selectSelectedVariableId: (state) => state.selectedId,
+
+    /**
+     * Select a variable by ID (memoized)
+     */
+    selectVariableById: createSelector(
+      (state: VariablesState) => state.items,
+      (_state: VariablesState, id: string) => id,
+      (items, id): Variable | undefined => items[id]
+    ),
+
+    /**
+     * Select the currently selected variable (memoized)
+     */
+    selectSelectedVariable: createSelector(
+      (state: VariablesState) => state.items,
+      (state: VariablesState) => state.selectedId,
+      (items, selectedId): Variable | null =>
+        selectedId ? items[selectedId] ?? null : null
+    ),
+
+    /**
+     * Select all variables as an array (memoized)
+     */
+    selectAllVariables: createSelector(
+      (state: VariablesState) => state.items,
+      (state: VariablesState) => state.ids,
+      (items, ids): Variable[] => ids.map((id) => items[id]).filter(Boolean)
+    ),
+
+    /**
+     * Select variable count
+     */
+    selectVariableCount: (state) => state.ids.length,
+  },
 });
 
 export const {
@@ -91,5 +141,15 @@ export const {
   updateVariableName,
   selectVariable,
 } = variablesSlice.actions;
+
+export const {
+  selectVariablesMap,
+  selectVariableIds,
+  selectSelectedVariableId,
+  selectVariableById,
+  selectSelectedVariable,
+  selectAllVariables,
+  selectVariableCount,
+} = variablesSlice.selectors;
 
 export default variablesSlice.reducer;

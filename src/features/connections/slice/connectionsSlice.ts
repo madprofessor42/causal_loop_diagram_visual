@@ -2,9 +2,10 @@
  * Redux slice for managing connections (arrows) in the Causal Loop Diagram
  */
 
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createSelector, type PayloadAction } from '@reduxjs/toolkit';
 import { nanoid } from 'nanoid';
 import type {
+  Connection,
   ConnectionsState,
   StartDrawingPayload,
   UpdateDrawingPayload,
@@ -18,6 +19,21 @@ const initialState: ConnectionsState = {
   drawing: null,
   selectedId: null,
 };
+
+/**
+ * Helper function to check if a connection already exists between two variables
+ */
+function connectionExists(
+  items: Record<string, Connection>,
+  sourceId: string,
+  targetId: string
+): boolean {
+  return Object.values(items).some(
+    (conn) =>
+      (conn.sourceId === sourceId && conn.targetId === targetId) ||
+      (conn.sourceId === targetId && conn.targetId === sourceId)
+  );
+}
 
 export const connectionsSlice = createSlice({
   name: 'connections',
@@ -52,24 +68,15 @@ export const connectionsSlice = createSlice({
         const { targetId } = action.payload;
         const { sourceId } = state.drawing;
 
-        // Don't create connection to self
-        if (sourceId !== targetId) {
-          // Check if connection already exists
-          const existingConnection = Object.values(state.items).find(
-            (conn) =>
-              (conn.sourceId === sourceId && conn.targetId === targetId) ||
-              (conn.sourceId === targetId && conn.targetId === sourceId)
-          );
-
-          if (!existingConnection) {
-            const id = nanoid();
-            state.items[id] = {
-              id,
-              sourceId,
-              targetId,
-            };
-            state.ids.push(id);
-          }
+        // Don't create connection to self and check if not exists
+        if (sourceId !== targetId && !connectionExists(state.items, sourceId, targetId)) {
+          const id = nanoid();
+          state.items[id] = {
+            id,
+            sourceId,
+            targetId,
+          };
+          state.ids.push(id);
         }
       }
       state.drawing = null;
@@ -88,19 +95,8 @@ export const connectionsSlice = createSlice({
     addConnection: (state, action: PayloadAction<AddConnectionPayload>) => {
       const { sourceId, targetId } = action.payload;
 
-      // Don't create connection to self
-      if (sourceId === targetId) {
-        return;
-      }
-
-      // Check if connection already exists
-      const existingConnection = Object.values(state.items).find(
-        (conn) =>
-          (conn.sourceId === sourceId && conn.targetId === targetId) ||
-          (conn.sourceId === targetId && conn.targetId === sourceId)
-      );
-
-      if (!existingConnection) {
+      // Don't create connection to self and check if not exists
+      if (sourceId !== targetId && !connectionExists(state.items, sourceId, targetId)) {
         const id = nanoid();
         state.items[id] = {
           id,
@@ -154,6 +150,77 @@ export const connectionsSlice = createSlice({
       state.selectedId = action.payload;
     },
   },
+  selectors: {
+    /**
+     * Select all connections as a record
+     */
+    selectConnectionsMap: (state) => state.items,
+
+    /**
+     * Select all connection IDs
+     */
+    selectConnectionIds: (state) => state.ids,
+
+    /**
+     * Select the drawing state
+     */
+    selectDrawingState: (state) => state.drawing,
+
+    /**
+     * Select whether currently drawing
+     */
+    selectIsDrawing: (state) => state.drawing?.isDrawing ?? false,
+
+    /**
+     * Select the source ID being drawn from
+     */
+    selectDrawingSourceId: (state) => state.drawing?.sourceId ?? null,
+
+    /**
+     * Select the temporary end point while drawing
+     */
+    selectDrawingTempEndPoint: (state) => state.drawing?.tempEndPoint ?? null,
+
+    /**
+     * Select currently selected connection ID
+     */
+    selectSelectedConnectionId: (state) => state.selectedId,
+
+    /**
+     * Select a connection by ID (memoized)
+     */
+    selectConnectionById: createSelector(
+      (state: ConnectionsState) => state.items,
+      (_state: ConnectionsState, id: string) => id,
+      (items, id): Connection | undefined => items[id]
+    ),
+
+    /**
+     * Select all connections as an array (memoized)
+     */
+    selectAllConnections: createSelector(
+      (state: ConnectionsState) => state.items,
+      (state: ConnectionsState) => state.ids,
+      (items, ids): Connection[] => ids.map((id) => items[id]).filter(Boolean)
+    ),
+
+    /**
+     * Select connections by variable ID (memoized)
+     */
+    selectConnectionsByVariableId: createSelector(
+      (state: ConnectionsState) => state.items,
+      (_state: ConnectionsState, variableId: string) => variableId,
+      (items, variableId): Connection[] =>
+        Object.values(items).filter(
+          (conn) => conn.sourceId === variableId || conn.targetId === variableId
+        )
+    ),
+
+    /**
+     * Select connection count
+     */
+    selectConnectionCount: (state) => state.ids.length,
+  },
 });
 
 export const {
@@ -166,5 +233,19 @@ export const {
   removeConnectionsByVariableId,
   selectConnection,
 } = connectionsSlice.actions;
+
+export const {
+  selectConnectionsMap,
+  selectConnectionIds,
+  selectDrawingState,
+  selectIsDrawing,
+  selectDrawingSourceId,
+  selectDrawingTempEndPoint,
+  selectSelectedConnectionId,
+  selectConnectionById,
+  selectAllConnections,
+  selectConnectionsByVariableId,
+  selectConnectionCount,
+} = connectionsSlice.selectors;
 
 export default connectionsSlice.reducer;

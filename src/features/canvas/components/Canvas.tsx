@@ -5,20 +5,18 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { selectVariable } from '../../variables/slice/variablesSlice';
-import { updateDrawing, cancelDrawing } from '../../connections/slice/connectionsSlice';
+import { selectVariable, selectVariablesMap, selectVariableIds } from '../../variables';
+import { updateDrawing, cancelDrawing, selectIsDrawing } from '../../connections';
 import { Variable } from '../../variables/components/Variable';
 import { ConnectionsLayer } from '../../connections/components/ConnectionsLayer';
 import type { Position, TransformState } from '../../../types/common.types';
 import { screenToCanvas } from '../../../utils/geometry';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../../constants';
 import styles from './Canvas.module.css';
 
 interface CanvasProps {
   transform?: TransformState;
 }
-
-const CANVAS_WIDTH = 3000;
-const CANVAS_HEIGHT = 2000;
 
 /**
  * Main canvas component with drop zone and connection drawing support
@@ -27,9 +25,9 @@ export function Canvas({ transform }: CanvasProps) {
   const dispatch = useAppDispatch();
   const canvasRef = useRef<HTMLDivElement>(null);
   
-  const variableIds = useAppSelector((state) => state.variables.ids);
-  const variables = useAppSelector((state) => state.variables.items);
-  const isDrawing = useAppSelector((state) => state.connections.drawing?.isDrawing);
+  const variableIds = useAppSelector(selectVariableIds);
+  const variables = useAppSelector(selectVariablesMap);
+  const isDrawing = useAppSelector(selectIsDrawing);
 
   const { setNodeRef, isOver } = useDroppable({
     id: 'canvas',

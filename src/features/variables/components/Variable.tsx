@@ -2,39 +2,34 @@
  * Variable component - A draggable circle representing a CLD variable
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { memo, useCallback } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { updateVariableName, selectVariable } from '../slice/variablesSlice';
-import { startDrawing, finishDrawing, cancelDrawing } from '../../connections/slice/connectionsSlice';
+import { selectVariable, selectSelectedVariableId } from '../slice/variablesSlice';
+import { useVariableEditor } from '../hooks';
+import { useConnectionDrawing } from '../../connections';
 import type { Variable as VariableType } from '../types/variable.types';
-import type { Position, DragData } from '../../../types/common.types';
+import type { DragData } from '../../../types/common.types';
 import styles from './Variable.module.css';
 
 interface VariableProps {
   variable: VariableType;
-  isConnectionTarget?: boolean;
-  onEdgeMouseDown?: (variableId: string, position: Position) => void;
 }
 
 /**
  * Variable component with dragging and connection support
+ * Wrapped in memo for performance optimization
  */
-export function Variable({ 
-  variable, 
-  isConnectionTarget = false,
-  onEdgeMouseDown 
-}: VariableProps) {
+export const Variable = memo(function Variable({ variable }: VariableProps) {
   const dispatch = useAppDispatch();
-  const selectedId = useAppSelector((state) => state.variables.selectedId);
-  const isDrawing = useAppSelector((state) => state.connections.drawing?.isDrawing);
-  const drawingSourceId = useAppSelector((state) => state.connections.drawing?.sourceId);
+  const selectedId = useAppSelector(selectSelectedVariableId);
   
-  const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(variable.name);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const circleRef = useRef<HTMLDivElement>(null);
-  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Use custom hooks for complex logic
+  const editor = useVariableEditor(variable);
+  const connection = useConnectionDrawing({ 
+    variableId: variable.id, 
+    position: variable.position 
+  });
 
   const isSelected = selectedId === variable.id;
   
@@ -46,74 +41,36 @@ export function Variable({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `variable-${variable.id}`,
     data: dragData,
-    disabled: isDrawing,
+    disabled: connection.isDrawing,
   });
-
-  // Focus input when editing starts
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (clickTimerRef.current) {
-        clearTimeout(clickTimerRef.current);
-      }
-    };
-  }, []);
 
   // Handle click on variable to select it or finish drawing connection
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     
     // If drawing and clicking on a different variable, finish the connection
-    if (isDrawing && drawingSourceId && drawingSourceId !== variable.id) {
-      dispatch(finishDrawing({ targetId: variable.id }));
+    if (connection.isValidTarget) {
+      connection.finishDrawingConnection();
       return;
     }
     
     // Otherwise, just select the variable
-    if (!isDrawing) {
+    if (!connection.isDrawing) {
       dispatch(selectVariable(variable.id));
     }
-  }, [dispatch, variable.id, isDrawing, drawingSourceId]);
+  }, [dispatch, variable.id, connection]);
 
   // Handle double-click to edit name
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     
     // Cancel any drawing that was started on the first click
-    if (isDrawing) {
-      dispatch(cancelDrawing());
+    if (connection.isDrawing) {
+      connection.cancelDrawingConnection();
     }
     
-    setIsEditing(true);
-    setEditValue(variable.name);
-  }, [variable.name, isDrawing, dispatch]);
-
-  // Handle name edit completion
-  const handleNameSubmit = useCallback(() => {
-    if (editValue.trim()) {
-      dispatch(updateVariableName({ id: variable.id, name: editValue.trim() }));
-    } else {
-      setEditValue(variable.name);
-    }
-    setIsEditing(false);
-  }, [dispatch, variable.id, variable.name, editValue]);
-
-  // Handle keyboard events for editing
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleNameSubmit();
-    } else if (e.key === 'Escape') {
-      setEditValue(variable.name);
-      setIsEditing(false);
-    }
-  }, [handleNameSubmit, variable.name]);
+    editor.startEditing();
+  }, [connection, editor]);
 
   // Handle mouse down on edge zone (start or finish drawing connection)
   const handleEdgeMouseDown = useCallback((e: React.MouseEvent) => {
@@ -127,34 +84,38 @@ export function Variable({
     e.preventDefault();
     
     // If already drawing and clicking on a different variable, finish the connection
-    if (isDrawing && drawingSourceId && drawingSourceId !== variable.id) {
-      dispatch(finishDrawing({ targetId: variable.id }));
+    if (connection.isValidTarget) {
+      connection.finishDrawingConnection();
       return;
     }
     
     // If not drawing, start drawing from this variable
-    if (!isDrawing) {
-      dispatch(startDrawing({
-        sourceId: variable.id,
-        startPoint: variable.position,
-      }));
-      onEdgeMouseDown?.(variable.id, variable.position);
+    if (!connection.isDrawing) {
+      connection.startDrawingConnection();
     }
-  }, [dispatch, variable.id, variable.position, onEdgeMouseDown, isDrawing, drawingSourceId]);
+  }, [connection]);
 
   // Handle mouse up on this variable (finish drawing connection)
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     
-    if (isDrawing && drawingSourceId && drawingSourceId !== variable.id) {
-      dispatch(finishDrawing({ targetId: variable.id }));
+    if (connection.isValidTarget) {
+      connection.finishDrawingConnection();
     }
-  }, [dispatch, isDrawing, drawingSourceId, variable.id]);
+  }, [connection]);
 
   // Calculate transform for positioning
   const style: React.CSSProperties = {
     transform: `translate(${variable.position.x - variable.radius}px, ${variable.position.y - variable.radius}px)`,
   };
+
+  // Build class names for circle
+  const circleClassName = [
+    styles.circle,
+    isSelected && styles.selected,
+    isDragging && styles.dragging,
+    connection.isValidTarget && styles.connectionTarget,
+  ].filter(Boolean).join(' ');
 
   return (
     <div
@@ -174,8 +135,7 @@ export function Variable({
         
         {/* Main circle */}
         <div
-          ref={circleRef}
-          className={`${styles.circle} ${isSelected ? styles.selected : ''} ${isDragging ? styles.dragging : ''} ${isConnectionTarget ? styles.connectionTarget : ''}`}
+          className={circleClassName}
           style={{
             width: variable.radius * 2,
             height: variable.radius * 2,
@@ -186,14 +146,14 @@ export function Variable({
       </div>
 
       {/* Label */}
-      {isEditing ? (
+      {editor.isEditing ? (
         <input
-          ref={inputRef}
+          ref={editor.inputRef}
           className={`${styles.labelInput} no-pan`}
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={handleNameSubmit}
-          onKeyDown={handleKeyDown}
+          value={editor.editValue}
+          onChange={editor.handleChange}
+          onBlur={editor.submitEdit}
+          onKeyDown={editor.handleKeyDown}
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -201,4 +161,4 @@ export function Variable({
       )}
     </div>
   );
-}
+});

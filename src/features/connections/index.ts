@@ -6,6 +6,9 @@
 export { Connection, DrawingConnection } from './components/Connection';
 export { ConnectionsLayer } from './components/ConnectionsLayer';
 
+// Hooks
+export { useConnectionDrawing } from './hooks';
+
 // Slice and actions
 export {
   default as connectionsReducer,
@@ -17,6 +20,21 @@ export {
   removeConnection,
   removeConnectionsByVariableId,
   selectConnection,
+} from './slice/connectionsSlice';
+
+// Selectors
+export {
+  selectConnectionsMap,
+  selectConnectionIds,
+  selectDrawingState,
+  selectIsDrawing,
+  selectDrawingSourceId,
+  selectDrawingTempEndPoint,
+  selectSelectedConnectionId,
+  selectConnectionById,
+  selectAllConnections,
+  selectConnectionsByVariableId,
+  selectConnectionCount,
 } from './slice/connectionsSlice';
 
 // Utils

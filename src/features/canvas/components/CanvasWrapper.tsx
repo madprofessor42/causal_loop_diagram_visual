@@ -6,6 +6,12 @@ import { useRef, useCallback, useState } from 'react';
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
 import { Canvas } from './Canvas';
 import type { TransformState } from '../../../types/common.types';
+import {
+  MIN_SCALE,
+  MAX_SCALE,
+  INITIAL_SCALE,
+  EXCLUDED_PAN_ELEMENTS,
+} from '../../../constants';
 import styles from './CanvasWrapper.module.css';
 
 /**
@@ -47,11 +53,11 @@ function ZoomControls() {
  */
 export function CanvasWrapper() {
   const [transform, setTransform] = useState<TransformState>({
-    scale: 1,
+    scale: INITIAL_SCALE,
     positionX: 0,
     positionY: 0,
   });
-  const [zoomLevel, setZoomLevel] = useState(100);
+  const [zoomLevel, setZoomLevel] = useState(INITIAL_SCALE * 100);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const handleTransform = useCallback((ref: { state: { scale: number; positionX: number; positionY: number } }) => {
@@ -66,14 +72,14 @@ export function CanvasWrapper() {
   return (
     <div ref={wrapperRef} className={styles.wrapper}>
       <TransformWrapper
-        initialScale={1}
-        minScale={0.25}
-        maxScale={2}
+        initialScale={INITIAL_SCALE}
+        minScale={MIN_SCALE}
+        maxScale={MAX_SCALE}
         centerOnInit={false}
         limitToBounds={false}
         panning={{
           velocityDisabled: true,
-          excluded: ['input', 'textarea', 'select', 'button', 'no-pan'],
+          excluded: EXCLUDED_PAN_ELEMENTS,
         }}
         onTransformed={handleTransform}
         doubleClick={{

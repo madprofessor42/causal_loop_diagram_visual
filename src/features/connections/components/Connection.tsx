@@ -2,9 +2,14 @@
  * Connection component - SVG arrow between two variables
  */
 
-import { useMemo, useCallback } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../app/hooks';
-import { selectConnection, removeConnection } from '../slice/connectionsSlice';
+import {
+  selectConnection,
+  removeConnection,
+  selectSelectedConnectionId,
+} from '../slice/connectionsSlice';
+import { selectVariablesMap } from '../../variables';
 import { calculatePath } from '../utils/pathCalculations';
 import type { Connection as ConnectionType } from '../types/connection.types';
 import styles from './Connection.module.css';
@@ -15,11 +20,12 @@ interface ConnectionProps {
 
 /**
  * Renders an arrow connection between two variables
+ * Wrapped in memo for performance optimization
  */
-export function Connection({ connection }: ConnectionProps) {
+export const Connection = memo(function Connection({ connection }: ConnectionProps) {
   const dispatch = useAppDispatch();
-  const variables = useAppSelector((state) => state.variables.items);
-  const selectedId = useAppSelector((state) => state.connections.selectedId);
+  const variables = useAppSelector(selectVariablesMap);
+  const selectedId = useAppSelector(selectSelectedConnectionId);
 
   const source = variables[connection.sourceId];
   const target = variables[connection.targetId];
@@ -45,6 +51,17 @@ export function Connection({ connection }: ConnectionProps) {
   // Don't render if either variable is missing
   if (!pathData) return null;
 
+  // Build class names
+  const lineClassName = [
+    styles.line,
+    isSelected && styles.lineSelected,
+  ].filter(Boolean).join(' ');
+
+  const arrowheadClassName = [
+    styles.arrowhead,
+    isSelected && styles.arrowheadSelected,
+  ].filter(Boolean).join(' ');
+
   return (
     <g>
       {/* Invisible wider path for easier clicking */}
@@ -57,7 +74,7 @@ export function Connection({ connection }: ConnectionProps) {
       
       {/* Visible line */}
       <path
-        className={`${styles.line} ${isSelected ? styles.lineSelected : ''}`}
+        className={lineClassName}
         d={pathData.path}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
@@ -65,14 +82,14 @@ export function Connection({ connection }: ConnectionProps) {
       
       {/* Arrowhead */}
       <polygon
-        className={`${styles.arrowhead} ${isSelected ? styles.arrowheadSelected : ''}`}
+        className={arrowheadClassName}
         points={pathData.arrowhead.points}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       />
     </g>
   );
-}
+});
 
 /**
  * Props for drawing connection (temporary line while drawing)
