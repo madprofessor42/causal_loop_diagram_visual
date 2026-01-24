@@ -37,9 +37,14 @@ function getCircleIntersection(
     return { x: centerX, y: centerY - radius };
   }
   
+  // Unit vector pointing toward target
+  const ux = dx / distance;
+  const uy = dy / distance;
+  
+  // Point on circle
   return {
-    x: centerX + (dx / distance) * radius,
-    y: centerY + (dy / distance) * radius,
+    x: centerX + ux * radius,
+    y: centerY + uy * radius,
   };
 }
 
@@ -63,11 +68,15 @@ function getPositionFromAngle(angle: number): Position {
 
 /**
  * Get the edge params for connecting two nodes with floating edges
- * The edges connect at the circle borders
+ * The edges connect at the circle borders toward the curve's control point
+ * @param offset - absolute offset value for curve (always positive)
+ * @param curveDirection - 1 for curve below, -1 for curve above
  */
 export function getFloatingEdgeParams(
   sourceNode: Node | InternalNode,
-  targetNode: Node | InternalNode
+  targetNode: Node | InternalNode,
+  offset: number = 0,
+  curveDirection: number = 1
 ): {
   sx: number;
   sy: number;
@@ -83,31 +92,55 @@ export function getFloatingEdgeParams(
   const sourceRadius = 40;
   const targetRadius = 40;
   
-  // Calculate intersection points on the circle borders
+  // Calculate the control point of the curve (same logic as in CausalEdge)
+  // This is the midpoint offset perpendicular to the line
+  const midX = (sourceCenter.x + targetCenter.x) / 2;
+  const midY = (sourceCenter.y + targetCenter.y) / 2;
+  
+  // Direction vector - always calculate left-to-right for consistent perpendicular
+  const leftX = Math.min(sourceCenter.x, targetCenter.x);
+  const rightX = Math.max(sourceCenter.x, targetCenter.x);
+  const leftY = sourceCenter.x < targetCenter.x ? sourceCenter.y : targetCenter.y;
+  const rightY = sourceCenter.x < targetCenter.x ? targetCenter.y : sourceCenter.y;
+  
+  const dx = rightX - leftX;
+  const dy = rightY - leftY;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  
+  // Perpendicular unit vector (consistent direction: positive = below the line)
+  const perpX = len > 0 ? -dy / len : 0;
+  const perpY = len > 0 ? dx / len : 1;
+  
+  // Control point offset (same multiplier as in CausalEdge: offset * 5)
+  const curvature = Math.abs(offset) * 5;
+  const controlX = midX + perpX * curvature * curveDirection;
+  const controlY = midY + perpY * curvature * curveDirection;
+  
+  // Calculate intersection points on the circle borders toward the control point
   const sourceIntersection = getCircleIntersection(
     sourceCenter.x,
     sourceCenter.y,
     sourceRadius,
-    targetCenter.x,
-    targetCenter.y
+    controlX,
+    controlY
   );
   
   const targetIntersection = getCircleIntersection(
     targetCenter.x,
     targetCenter.y,
     targetRadius,
-    sourceCenter.x,
-    sourceCenter.y
+    controlX,
+    controlY
   );
   
   // Calculate angles for position determination
   const sourceAngle = Math.atan2(
-    targetCenter.y - sourceCenter.y,
-    targetCenter.x - sourceCenter.x
+    controlY - sourceCenter.y,
+    controlX - sourceCenter.x
   );
   const targetAngle = Math.atan2(
-    sourceCenter.y - targetCenter.y,
-    sourceCenter.x - targetCenter.x
+    controlY - targetCenter.y,
+    controlX - targetCenter.x
   );
   
   return {

@@ -23,10 +23,18 @@
   left: 0 !important;
   transform: none !important;
   background: transparent !important;
-  border: none !important;
+  border: 3px solid transparent !important;
   border-radius: 50% !important;
   z-index: 1 !important;
   cursor: crosshair !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+
+/* Show subtle ring highlight on hover */
+.container:hover .ringHandle {
+  border-color: rgba(51, 154, 240, 0.4) !important;
+  box-shadow: 0 0 8px rgba(51, 154, 240, 0.3) !important;
 }
 
 /* Inner circle - blocks mouse events in center, allows drag */

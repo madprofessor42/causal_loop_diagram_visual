@@ -13,46 +13,36 @@
   stroke-width: 3px;
 }
 
-/* Polarity label */
+/* Polarity label - simple text */
 .label {
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  font-size: 16px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 400;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
+  color: #868e96;
 }
 
 .label:hover {
-  transform: translate(-50%, -50%) scale(1.15);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%) scale(1.2);
 }
 
 .labelSelected {
-  box-shadow: 0 0 0 2px #339af0;
+  color: #339af0;
 }
 
-/* Polarity colors */
+/* Polarity colors - just text color */
 .positive {
-  background-color: #d3f9d8;
-  color: #2f9e44;
-  border: 2px solid #2f9e44;
+  color: #868e96;
 }
 
 .negative {
-  background-color: #ffe3e3;
-  color: #e03131;
-  border: 2px solid #e03131;
+  color: #868e96;
 }
 
 .unknown {
-  background-color: #f1f3f5;
   color: #868e96;
-  border: 2px solid #868e96;
 }

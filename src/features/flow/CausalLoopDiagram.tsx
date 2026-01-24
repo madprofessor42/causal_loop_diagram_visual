@@ -2,7 +2,7 @@
  * CausalLoopDiagram - Main React Flow component for the CLD editor
  */
 
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -78,7 +78,7 @@ const initialEdges: Edge[] = [
     targetHandle: 'source',
     type: 'causal',
     markerEnd: { type: MarkerType.ArrowClosed, color: '#868e96' },
-    data: { polarity: 'positive' },
+    data: { polarity: 'positive', offset: 8 },
   },
   {
     id: 'e2-1',
@@ -88,7 +88,7 @@ const initialEdges: Edge[] = [
     targetHandle: 'source',
     type: 'causal',
     markerEnd: { type: MarkerType.ArrowClosed, color: '#868e96' },
-    data: { polarity: 'positive' },
+    data: { polarity: 'positive', offset: 8 },
   },
   {
     id: 'e3-1',
@@ -98,9 +98,58 @@ const initialEdges: Edge[] = [
     targetHandle: 'source',
     type: 'causal',
     markerEnd: { type: MarkerType.ArrowClosed, color: '#868e96' },
-    data: { polarity: 'negative' },
+    data: { polarity: 'negative', offset: 0 },
   },
 ];
+
+/**
+ * Calculate offsets for parallel edges (edges between same two nodes)
+ * Each edge direction gets a different offset sign to spread connection points
+ */
+function calculateEdgeOffsets(edges: Edge[]): Edge[] {
+  // Group edges by node pair (regardless of direction)
+  const pairMap = new Map<string, Edge[]>();
+  
+  edges.forEach(edge => {
+    // Create a key that's the same regardless of direction
+    const nodes = [edge.source, edge.target].sort();
+    const key = `${nodes[0]}-${nodes[1]}`;
+    
+    if (!pairMap.has(key)) {
+      pairMap.set(key, []);
+    }
+    pairMap.get(key)!.push(edge);
+  });
+  
+  // Assign offsets for parallel edges - larger value for more visible separation
+  const OFFSET_AMOUNT = 25;
+  
+  return edges.map(edge => {
+    const nodes = [edge.source, edge.target].sort();
+    const key = `${nodes[0]}-${nodes[1]}`;
+    const group = pairMap.get(key)!;
+    
+    if (group.length <= 1) {
+      // Single edge, no offset needed
+      return {
+        ...edge,
+        data: { ...edge.data, offset: 0 },
+      };
+    }
+    
+    // Multiple edges between same nodes
+    // Use edge direction to determine offset sign:
+    // - If source comes before target alphabetically/numerically: positive offset
+    // - Otherwise: negative offset
+    // This ensures opposite directions get opposite offsets
+    const offset = edge.source < edge.target ? OFFSET_AMOUNT : -OFFSET_AMOUNT;
+    
+    return {
+      ...edge,
+      data: { ...edge.data, offset },
+    };
+  });
+}
 
 // Generate unique ID for new nodes
 let nodeIdCounter = 4;
@@ -114,6 +163,9 @@ function CausalLoopDiagramInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition } = useReactFlow();
+
+  // Calculate edges with proper offsets for parallel edges
+  const edgesWithOffsets = useMemo(() => calculateEdgeOffsets(edges), [edges]);
 
   // Handle new connections
   const onConnect: OnConnect = useCallback(
@@ -232,7 +284,7 @@ function CausalLoopDiagramInner() {
     >
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={edgesWithOffsets}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
