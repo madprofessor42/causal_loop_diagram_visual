@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -7,7 +7,8 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
-  MarkerType,
+  useReactFlow,
+  ReactFlowProvider,
   BackgroundVariant,
   ConnectionMode,
   type OnConnect,
@@ -15,6 +16,7 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
+  type EdgeTypes,
   type Connection,
 } from '@xyflow/react';
 
@@ -24,6 +26,9 @@ import './App.css';
 import { CircularNode } from './components/CircularNode';
 import FloatingEdge from './components/FloatingEdge';
 import type { CircularNodeData, FloatingEdgeData } from './types';
+
+// Context to pass edge update function to edge components
+export type UpdateEdgeData = (edgeId: string, data: Partial<FloatingEdgeData>) => void;
 
 const nodeTypes: NodeTypes = {
   circular: CircularNode,
@@ -73,11 +78,38 @@ function calculateAngleFromNodeCenter(
   return Math.atan2(clientY - centerY, clientX - centerX);
 }
 
-function App() {
+// Update edge data helper that will be passed to edges
+function useEdgeUpdater(setEdges: ReturnType<typeof useEdgesState>[1]) {
+  return useCallback((edgeId: string, newData: Partial<FloatingEdgeData>) => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        if (edge.id === edgeId) {
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              ...newData,
+            },
+          };
+        }
+        return edge;
+      })
+    );
+  }, [setEdges]);
+}
+
+function Flow() {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const pendingConnectionRef = useRef<Connection | null>(null);
   const sourceAngleRef = useRef<number | null>(null);
+  
+  const updateEdgeData = useEdgeUpdater(setEdges);
+  
+  // Create edge types with updateEdgeData bound
+  const edgeTypesWithUpdate = useMemo(() => ({
+    floating: (props: any) => <FloatingEdge {...props} updateEdgeData={updateEdgeData} />,
+  }), [updateEdgeData]);
 
   const onConnectStart: OnConnectStart = useCallback(
     (event, { nodeId }) => {
@@ -196,7 +228,7 @@ function App() {
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        edgeTypes={edgeTypesWithUpdate}
         connectionMode={ConnectionMode.Loose}
         fitView
         minZoom={0.5}
@@ -207,6 +239,15 @@ function App() {
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
       </ReactFlow>
     </div>
+  );
+}
+
+// Wrapper component with ReactFlowProvider
+function App() {
+  return (
+    <ReactFlowProvider>
+      <Flow />
+    </ReactFlowProvider>
   );
 }
 

@@ -1,20 +1,38 @@
-import { useCallback } from 'react';
-import { useStore, type EdgeProps } from '@xyflow/react';
+import { useCallback, useState, useRef } from 'react';
+import { useStore, useReactFlow, type EdgeProps } from '@xyflow/react';
 import { getEdgeParams } from './utils/edgeUtils';
+import type { UpdateEdgeData } from '../App';
 
 interface FloatingEdgeData {
   sourceAngle?: number;
   targetAngle?: number;
+  curveOffset?: { x: number; y: number };
+}
+
+interface FloatingEdgeProps extends EdgeProps {
+  updateEdgeData?: UpdateEdgeData;
 }
 
 // Arrow configuration
 const ARROW_SIZE = 8;
 const STROKE_WIDTH = 1.5;
 const STROKE_COLOR = '#1a1a1a';
+const HANDLE_SIZE = 8;
+const HANDLE_COLOR = '#6366f1';
+const HANDLE_HOVER_COLOR = '#4f46e5';
 
-function FloatingEdge({ id, source, target, style, data }: EdgeProps) {
+// Node radius (must match CircularNode.tsx)
+const RADIUS = 40;
+const OUTER_THRESHOLD = 10;
+
+function FloatingEdge({ id, source, target, style, data, updateEdgeData }: FloatingEdgeProps) {
   const sourceNode = useStore(useCallback((store) => store.nodeLookup.get(source), [source]));
   const targetNode = useStore(useCallback((store) => store.nodeLookup.get(target), [target]));
+  const { screenToFlowPosition } = useReactFlow();
+  
+  const [isDragging, setIsDragging] = useState<'source' | 'target' | 'curve' | null>(null);
+  const [hoveredHandle, setHoveredHandle] = useState<'source' | 'target' | 'curve' | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
 
   if (!sourceNode || !targetNode) {
     return null;
@@ -33,44 +51,131 @@ function FloatingEdge({ id, source, target, style, data }: EdgeProps) {
     targetAngle: edgeData?.targetAngle,
   });
 
+  // Apply manual curve offset if present
+  const curveOffset = edgeData?.curveOffset || { x: 0, y: 0 };
+
   // Calculate control points for cubic bezier curve
-  const sourceControlX = sx + sourceControlOffsetX;
-  const sourceControlY = sy + sourceControlOffsetY;
-  const targetControlX = tx + targetControlOffsetX;
-  const targetControlY = ty + targetControlOffsetY;
+  const sourceControlX = sx + sourceControlOffsetX + curveOffset.x;
+  const sourceControlY = sy + sourceControlOffsetY + curveOffset.y;
+  const targetControlX = tx + targetControlOffsetX + curveOffset.x;
+  const targetControlY = ty + targetControlOffsetY + curveOffset.y;
 
   // Check if we need a curve (if any deviation exists)
-  const hasCurve = Math.abs(sourceControlOffsetX) > 0.1 || Math.abs(sourceControlOffsetY) > 0.1 ||
-                   Math.abs(targetControlOffsetX) > 0.1 || Math.abs(targetControlOffsetY) > 0.1;
+  const hasCurve = Math.abs(sourceControlOffsetX + curveOffset.x) > 0.1 || 
+                   Math.abs(sourceControlOffsetY + curveOffset.y) > 0.1 ||
+                   Math.abs(targetControlOffsetX + curveOffset.x) > 0.1 || 
+                   Math.abs(targetControlOffsetY + curveOffset.y) > 0.1;
 
   // Build path
   let edgePath: string;
   let arrowAngle: number;
+  let midX: number;
+  let midY: number;
   
   if (hasCurve) {
     // Cubic bezier curve: M start C control1 control2 end
     edgePath = `M ${sx},${sy} C ${sourceControlX},${sourceControlY} ${targetControlX},${targetControlY} ${tx},${ty}`;
     // Arrow angle is tangent at end point = direction from last control point to end
     arrowAngle = Math.atan2(ty - targetControlY, tx - targetControlX);
+    // Calculate midpoint of bezier curve (approximate at t=0.5)
+    const t = 0.5;
+    midX = Math.pow(1-t, 3) * sx + 3 * Math.pow(1-t, 2) * t * sourceControlX + 3 * (1-t) * Math.pow(t, 2) * targetControlX + Math.pow(t, 3) * tx;
+    midY = Math.pow(1-t, 3) * sy + 3 * Math.pow(1-t, 2) * t * sourceControlY + 3 * (1-t) * Math.pow(t, 2) * targetControlY + Math.pow(t, 3) * ty;
   } else {
     // Straight line
     edgePath = `M ${sx},${sy} L ${tx},${ty}`;
     // Arrow angle is direction of line
     arrowAngle = Math.atan2(ty - sy, tx - sx);
+    // Midpoint of straight line
+    midX = (sx + tx) / 2;
+    midY = (sy + ty) / 2;
   }
 
   // Calculate arrow head points (simple V-shape arrow)
-  const arrowAngle1 = arrowAngle + Math.PI * 0.8; // 144 degrees from line direction
-  const arrowAngle2 = arrowAngle - Math.PI * 0.8; // -144 degrees from line direction
+  const arrowAngle1 = arrowAngle + Math.PI * 0.8;
+  const arrowAngle2 = arrowAngle - Math.PI * 0.8;
   
   const arrowX1 = tx + ARROW_SIZE * Math.cos(arrowAngle1);
   const arrowY1 = ty + ARROW_SIZE * Math.sin(arrowAngle1);
   const arrowX2 = tx + ARROW_SIZE * Math.cos(arrowAngle2);
   const arrowY2 = ty + ARROW_SIZE * Math.sin(arrowAngle2);
 
+  // Calculate node centers for angle calculations during drag
+  const containerSize = (RADIUS + OUTER_THRESHOLD) * 2;
+  const nodeWidth = sourceNode.measured?.width ?? containerSize;
+  const nodeCenterOffset = nodeWidth / 2;
+  
+  const sourceCenterX = sourceNode.position.x + nodeCenterOffset;
+  const sourceCenterY = sourceNode.position.y + nodeCenterOffset;
+  const targetCenterX = targetNode.position.x + nodeCenterOffset;
+  const targetCenterY = targetNode.position.y + nodeCenterOffset;
+
+  // Handle drag start
+  const handleMouseDown = (handleType: 'source' | 'target' | 'curve') => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsDragging(handleType);
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!updateEdgeData) return;
+      
+      const flowPos = screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY });
+
+      if (handleType === 'source') {
+        // Calculate new source angle based on drag position relative to source node center
+        const newAngle = Math.atan2(flowPos.y - sourceCenterY, flowPos.x - sourceCenterX);
+        updateEdgeData(id, { sourceAngle: newAngle });
+      } else if (handleType === 'target') {
+        // Calculate new target angle based on drag position relative to target node center
+        const newAngle = Math.atan2(flowPos.y - targetCenterY, flowPos.x - targetCenterX);
+        updateEdgeData(id, { targetAngle: newAngle });
+      } else if (handleType === 'curve') {
+        // Calculate curve offset based on drag position relative to original midpoint
+        const baseMidX = (sx + tx) / 2;
+        const baseMidY = (sy + ty) / 2;
+        const newOffset = {
+          x: (flowPos.x - baseMidX) * 0.5,
+          y: (flowPos.y - baseMidY) * 0.5,
+        };
+        updateEdgeData(id, { curveOffset: newOffset });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(null);
+      setHoveredHandle(null);
+      dragStartRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const getHandleColor = (handleType: 'source' | 'target' | 'curve') => {
+    if (isDragging === handleType || hoveredHandle === handleType) {
+      return HANDLE_HOVER_COLOR;
+    }
+    return HANDLE_COLOR;
+  };
+
   return (
     <g className="react-flow__edge">
-      {/* Main edge path */}
+      {/* Invisible wider path for curve dragging - clicking anywhere on line starts curve drag */}
+      <path
+        d={edgePath}
+        strokeWidth={20}
+        stroke="transparent"
+        fill="none"
+        style={{ cursor: 'move' }}
+        onMouseDown={handleMouseDown('curve')}
+        onMouseEnter={() => setHoveredHandle('curve')}
+        onMouseLeave={() => !isDragging && setHoveredHandle(null)}
+      />
+      
+      {/* Main edge path - no pointer events, handles will capture */}
       <path
         id={id}
         className="react-flow__edge-path"
@@ -79,8 +184,9 @@ function FloatingEdge({ id, source, target, style, data }: EdgeProps) {
         stroke={STROKE_COLOR}
         fill="none"
         strokeLinecap="round"
-        style={style}
+        style={{ ...style, pointerEvents: 'none' }}
       />
+      
       {/* Custom arrowhead - V-shape */}
       <path
         d={`M ${arrowX1},${arrowY1} L ${tx},${ty} L ${arrowX2},${arrowY2}`}
@@ -89,10 +195,61 @@ function FloatingEdge({ id, source, target, style, data }: EdgeProps) {
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
+        style={{ pointerEvents: 'none' }}
+      />
+
+      {/* Source handle (start point) */}
+      <circle
+        cx={sx}
+        cy={sy}
+        r={HANDLE_SIZE}
+        fill={getHandleColor('source')}
+        stroke="white"
+        strokeWidth={2}
+        style={{
+          cursor: 'pointer',
+          opacity: hoveredHandle === 'source' || isDragging === 'source' ? 1 : 0.5,
+        }}
+        onMouseDown={handleMouseDown('source')}
+        onMouseEnter={() => setHoveredHandle('source')}
+        onMouseLeave={() => !isDragging && setHoveredHandle(null)}
+      />
+
+      {/* Target handle (end point) */}
+      <circle
+        cx={tx}
+        cy={ty}
+        r={HANDLE_SIZE}
+        fill={getHandleColor('target')}
+        stroke="white"
+        strokeWidth={2}
+        style={{
+          cursor: 'pointer',
+          opacity: hoveredHandle === 'target' || isDragging === 'target' ? 1 : 0.5,
+        }}
+        onMouseDown={handleMouseDown('target')}
+        onMouseEnter={() => setHoveredHandle('target')}
+        onMouseLeave={() => !isDragging && setHoveredHandle(null)}
+      />
+
+      {/* Curve control handle (midpoint) */}
+      <circle
+        cx={midX}
+        cy={midY}
+        r={HANDLE_SIZE}
+        fill={getHandleColor('curve')}
+        stroke="white"
+        strokeWidth={2}
+        style={{
+          cursor: 'move',
+          opacity: hoveredHandle === 'curve' || isDragging === 'curve' ? 1 : 0.5,
+        }}
+        onMouseDown={handleMouseDown('curve')}
+        onMouseEnter={() => setHoveredHandle('curve')}
+        onMouseLeave={() => !isDragging && setHoveredHandle(null)}
       />
     </g>
   );
 }
 
 export default FloatingEdge;
-

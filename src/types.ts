@@ -17,6 +17,7 @@ export interface HandlePosition {
 export interface FloatingEdgeData extends Record<string, unknown> {
   sourceAngle?: number; // Angle in radians from center where connection started
   targetAngle?: number; // Angle in radians from center where connection ended
+  curveOffset?: { x: number; y: number }; // Manual curve offset from midpoint
 }
 
 export type FloatingEdge = Edge<FloatingEdgeData>;
