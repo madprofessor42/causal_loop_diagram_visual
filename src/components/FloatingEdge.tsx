@@ -1,28 +1,21 @@
 import { useCallback, useRef, useState } from 'react';
 import { useStore, useReactFlow, type EdgeProps } from '@xyflow/react';
-import { getEdgeParams } from './utils/edgeUtils';
+import { getEdgeParams } from '../utils/edge';
+import { PolarityMarker, DelayMarker } from './edges/markers';
 import type { UpdateEdgeData } from '../App';
-
-interface FloatingEdgeData {
-  sourceAngle?: number;
-  targetAngle?: number;
-  curveOffset?: { x: number; y: number };
-}
+import type { BaseEdgeData } from '../types';
+import {
+  ARROW_SIZE,
+  EDGE_STROKE_WIDTH,
+  EDGE_COLORS,
+  EDGE_HOVER_STROKE_WIDTH,
+  EDGE_ZONES,
+  NODE_CONTAINER_SIZE,
+} from '../constants';
 
 interface FloatingEdgeProps extends EdgeProps {
   updateEdgeData?: UpdateEdgeData;
 }
-
-// Arrow configuration
-const ARROW_SIZE = 8;
-const STROKE_WIDTH = 1.5;
-const STROKE_COLOR = '#1a1a1a';
-const HOVER_COLOR = '#3b82f6'; // Blue highlight color
-const HOVER_STROKE_WIDTH = 4;
-
-// Node radius (must match CircularNode.tsx)
-const RADIUS = 40;
-const OUTER_THRESHOLD = 10;
 
 type HoverZone = 'source' | 'target' | 'curve' | null;
 
@@ -39,7 +32,7 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
   }
 
   // Cast data to our expected type
-  const edgeData = data as FloatingEdgeData | undefined;
+  const edgeData = data as BaseEdgeData | undefined;
 
   // Pass stored angles for precise edge positioning
   const {
@@ -73,6 +66,18 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
     return { x, y };
   };
 
+  // Helper to get tangent angle on bezier curve at t
+  const getBezierTangent = (t: number) => {
+    // Derivative of cubic bezier
+    const dx = 3 * Math.pow(1-t, 2) * (sourceControlX - sx) + 
+               6 * (1-t) * t * (targetControlX - sourceControlX) + 
+               3 * Math.pow(t, 2) * (tx - targetControlX);
+    const dy = 3 * Math.pow(1-t, 2) * (sourceControlY - sy) + 
+               6 * (1-t) * t * (targetControlY - sourceControlY) + 
+               3 * Math.pow(t, 2) * (ty - targetControlY);
+    return Math.atan2(dy, dx);
+  };
+
   // Helper to get point on straight line at t
   const getLinePoint = (t: number) => {
     return {
@@ -87,10 +92,19 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
   let curveDragPath: string;  // Middle 70% for curve bending
   let targetDragPath: string; // Last 15% for target angle adjustment
   let arrowAngle: number;
+  let midpoint: { x: number; y: number };
+  let midpointAngle: number;
+  let polarityPosition: { x: number; y: number };
+  let polarityAngle: number;
   
-  // Zone boundaries (0-15% source, 15-85% curve, 85-100% target)
-  const SOURCE_END = 0.15;
-  const TARGET_START = 0.85;
+  // Use zone boundaries from constants
+  const SOURCE_END = EDGE_ZONES.sourceEnd;
+  const TARGET_START = EDGE_ZONES.targetStart;
+  
+  // Position for polarity marker (75% along the edge, near target)
+  const POLARITY_T = 0.75;
+  // Position for delay marker (50% along the edge)
+  const DELAY_T = 0.5;
   
   if (hasCurve) {
     // Cubic bezier curve: M start C control1 control2 end
@@ -98,10 +112,16 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
     // Arrow angle is tangent at end point = direction from last control point to end
     arrowAngle = Math.atan2(ty - targetControlY, tx - targetControlX);
     
+    // Calculate midpoint and polarity position for markers
+    midpoint = getBezierPoint(DELAY_T);
+    midpointAngle = getBezierTangent(DELAY_T);
+    polarityPosition = getBezierPoint(POLARITY_T);
+    polarityAngle = getBezierTangent(POLARITY_T);
+    
     // Build paths for each drag zone
     // Source zone: 0% to 15%
     const s1 = getBezierPoint(0);
-    const s2 = getBezierPoint(0.075);
+    const s2 = getBezierPoint(SOURCE_END / 2);
     const s3 = getBezierPoint(SOURCE_END);
     sourceDragPath = `M ${s1.x},${s1.y} L ${s2.x},${s2.y} L ${s3.x},${s3.y}`;
     
@@ -115,7 +135,7 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
     
     // Target zone: 85% to 100%
     const t1 = getBezierPoint(TARGET_START);
-    const t2 = getBezierPoint(0.925);
+    const t2 = getBezierPoint((TARGET_START + 1) / 2);
     const t3 = getBezierPoint(1);
     targetDragPath = `M ${t1.x},${t1.y} L ${t2.x},${t2.y} L ${t3.x},${t3.y}`;
   } else {
@@ -123,6 +143,12 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
     edgePath = `M ${sx},${sy} L ${tx},${ty}`;
     // Arrow angle is direction of line
     arrowAngle = Math.atan2(ty - sy, tx - sx);
+    
+    // Calculate midpoint and polarity position for markers
+    midpoint = getLinePoint(DELAY_T);
+    midpointAngle = arrowAngle;
+    polarityPosition = getLinePoint(POLARITY_T);
+    polarityAngle = arrowAngle;
     
     // Build paths for each drag zone
     const s1 = getLinePoint(0);
@@ -148,8 +174,7 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
   const arrowY2 = ty + ARROW_SIZE * Math.sin(arrowAngle2);
 
   // Calculate node centers for angle calculations during drag
-  const containerSize = (RADIUS + OUTER_THRESHOLD) * 2;
-  const nodeWidth = sourceNode.measured?.width ?? containerSize;
+  const nodeWidth = sourceNode.measured?.width ?? NODE_CONTAINER_SIZE;
   const nodeCenterOffset = nodeWidth / 2;
   
   const sourceCenterX = sourceNode.position.x + nodeCenterOffset;
@@ -198,6 +223,10 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
     document.addEventListener('mouseup', handleMouseUp);
   };
 
+  // Get polarity for rendering
+  const polarity = edgeData?.polarity ?? 'positive';
+  const showDelay = edgeData?.delay ?? false;
+
   return (
     <g className="react-flow__edge">
       {/* Source drag zone - first 15% of the path */}
@@ -240,8 +269,8 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
       {hoveredZone === 'source' && (
         <path
           d={sourceDragPath}
-          strokeWidth={HOVER_STROKE_WIDTH}
-          stroke={HOVER_COLOR}
+          strokeWidth={EDGE_HOVER_STROKE_WIDTH}
+          stroke={EDGE_COLORS.hover}
           fill="none"
           strokeLinecap="round"
           style={{ pointerEvents: 'none', opacity: 0.6 }}
@@ -252,8 +281,8 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
       {hoveredZone === 'curve' && (
         <path
           d={curveDragPath}
-          strokeWidth={HOVER_STROKE_WIDTH}
-          stroke={HOVER_COLOR}
+          strokeWidth={EDGE_HOVER_STROKE_WIDTH}
+          stroke={EDGE_COLORS.hover}
           fill="none"
           strokeLinecap="round"
           style={{ pointerEvents: 'none', opacity: 0.6 }}
@@ -264,8 +293,8 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
       {hoveredZone === 'target' && (
         <path
           d={targetDragPath}
-          strokeWidth={HOVER_STROKE_WIDTH}
-          stroke={HOVER_COLOR}
+          strokeWidth={EDGE_HOVER_STROKE_WIDTH}
+          stroke={EDGE_COLORS.hover}
           fill="none"
           strokeLinecap="round"
           style={{ pointerEvents: 'none', opacity: 0.6 }}
@@ -277,8 +306,8 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        strokeWidth={STROKE_WIDTH}
-        stroke={STROKE_COLOR}
+        strokeWidth={EDGE_STROKE_WIDTH}
+        stroke={EDGE_COLORS.default}
         fill="none"
         strokeLinecap="round"
         style={{ ...style, pointerEvents: 'none' }}
@@ -287,13 +316,30 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
       {/* Custom arrowhead - V-shape, no pointer events */}
       <path
         d={`M ${arrowX1},${arrowY1} L ${tx},${ty} L ${arrowX2},${arrowY2}`}
-        strokeWidth={STROKE_WIDTH}
-        stroke={STROKE_COLOR}
+        strokeWidth={EDGE_STROKE_WIDTH}
+        stroke={EDGE_COLORS.default}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{ pointerEvents: 'none' }}
       />
+      
+      {/* Polarity marker (+/-) near the target */}
+      <PolarityMarker
+        polarity={polarity}
+        x={polarityPosition.x}
+        y={polarityPosition.y}
+        angle={polarityAngle}
+      />
+      
+      {/* Delay marker (||) at midpoint if enabled */}
+      {showDelay && (
+        <DelayMarker
+          x={midpoint.x}
+          y={midpoint.y}
+          angle={midpointAngle}
+        />
+      )}
     </g>
   );
 }

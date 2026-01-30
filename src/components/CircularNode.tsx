@@ -1,21 +1,21 @@
 import { useState, useRef } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { getClosestPointOnCircle, getDistance } from '../utils/geometry';
-
-// The visual circle radius
-const RADIUS = 40;
-// How far inside the circle edge to start showing handles
-const INNER_THRESHOLD = 10;
-// How far outside the circle edge to keep showing handles
-const OUTER_THRESHOLD = 5;
+import {
+  NODE_RADIUS,
+  NODE_INNER_THRESHOLD,
+  NODE_OUTER_THRESHOLD,
+  NODE_CONTAINER_SIZE,
+  NODE_COLORS,
+  HANDLE_INDICATOR,
+} from '../constants';
+import type { HandlePosition, BaseNodeData } from '../types';
 
 export function CircularNode({ data }: NodeProps) {
-  const [handlePos, setHandlePos] = useState({ x: 0, y: 0, angle: 0, visible: false });
+  const [handlePos, setHandlePos] = useState<HandlePosition>({ 
+    x: 0, y: 0, angle: 0, visible: false 
+  });
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Container size includes outer threshold for mouse detection
-  const containerSize = (RADIUS + OUTER_THRESHOLD) * 2;
-  const sensorSize = containerSize;
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -28,12 +28,11 @@ export function CircularNode({ data }: NodeProps) {
     const centerY = containerRect.top + containerRect.height / 2;
 
     // Calculate actual rendered radius (accounts for zoom)
-    // Container width = (RADIUS + OUTER_THRESHOLD) * 2, so actual circle radius is:
     const actualContainerRadius = containerRect.width / 2;
-    const scale = actualContainerRadius / (RADIUS + OUTER_THRESHOLD);
-    const actualRadius = RADIUS * scale;
-    const actualOuterThreshold = OUTER_THRESHOLD * scale;
-    const actualInnerThreshold = INNER_THRESHOLD * scale;
+    const scale = actualContainerRadius / (NODE_RADIUS + NODE_OUTER_THRESHOLD);
+    const actualRadius = NODE_RADIUS * scale;
+    const actualOuterThreshold = NODE_OUTER_THRESHOLD * scale;
+    const actualInnerThreshold = NODE_INNER_THRESHOLD * scale;
 
     // Calculate distance from mouse to circle center (in screen pixels)
     const distance = getDistance(centerX, centerY, event.clientX, event.clientY);
@@ -50,16 +49,16 @@ export function CircularNode({ data }: NodeProps) {
       const mouseRelY = event.clientY - centerY;
       
       const { x, y, angle } = getClosestPointOnCircle(
-        mouseRelX + RADIUS,
-        mouseRelY + RADIUS,
-        RADIUS,
-        RADIUS,
-        RADIUS
+        mouseRelX + NODE_RADIUS,
+        mouseRelY + NODE_RADIUS,
+        NODE_RADIUS,
+        NODE_RADIUS,
+        NODE_RADIUS
       );
       
       setHandlePos({
-        x: x - RADIUS,
-        y: y - RADIUS,
+        x: x - NODE_RADIUS,
+        y: y - NODE_RADIUS,
         angle,
         visible: true,
       });
@@ -79,8 +78,8 @@ export function CircularNode({ data }: NodeProps) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
-        width: containerSize,
-        height: containerSize,
+        width: NODE_CONTAINER_SIZE,
+        height: NODE_CONTAINER_SIZE,
         position: 'relative',
         // Cursor is 'crosshair' in edge zone, CSS handles 'grab/grabbing' for dragging
         cursor: handlePos.visible ? 'crosshair' : undefined,
@@ -90,25 +89,27 @@ export function CircularNode({ data }: NodeProps) {
       <div
         className="circular-node"
         style={{
-          width: RADIUS * 2,
-          height: RADIUS * 2,
+          width: NODE_RADIUS * 2,
+          height: NODE_RADIUS * 2,
           borderRadius: '50%',
-          background: '#6366f1',
-          border: '2px solid #4338ca',
+          background: NODE_COLORS.default.background,
+          border: `2px solid ${NODE_COLORS.default.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'white',
+          color: NODE_COLORS.default.text,
           fontWeight: 500,
           fontSize: '14px',
           position: 'absolute',
-          left: OUTER_THRESHOLD,
-          top: OUTER_THRESHOLD,
+          left: NODE_OUTER_THRESHOLD,
+          top: NODE_OUTER_THRESHOLD,
           transition: 'box-shadow 0.2s',
           zIndex: 0,
         }}
       >
-        <div style={{ pointerEvents: 'none' }}>{data?.label as string || ''}</div>
+        <div style={{ pointerEvents: 'none' }}>
+          {(data as BaseNodeData)?.label || ''}
+        </div>
       </div>
       
       {/* Visual indicator dot - shows where connection point will be */}
@@ -116,10 +117,10 @@ export function CircularNode({ data }: NodeProps) {
         <div
           style={{
             position: 'absolute',
-            width: '12px',
-            height: '12px',
-            background: '#22c55e',
-            border: '2px solid #16a34a',
+            width: HANDLE_INDICATOR.size,
+            height: HANDLE_INDICATOR.size,
+            background: HANDLE_INDICATOR.color,
+            border: `2px solid ${HANDLE_INDICATOR.borderColor}`,
             borderRadius: '50%',
             left: `calc(50% + ${handlePos.x}px)`,
             top: `calc(50% + ${handlePos.y}px)`,
@@ -140,8 +141,8 @@ export function CircularNode({ data }: NodeProps) {
           background: 'transparent',
           border: 'none',
           // Cover the entire sensor area
-          width: sensorSize,
-          height: sensorSize,
+          width: NODE_CONTAINER_SIZE,
+          height: NODE_CONTAINER_SIZE,
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
@@ -163,8 +164,8 @@ export function CircularNode({ data }: NodeProps) {
           background: 'transparent',
           border: 'none',
           // Cover the entire sensor area
-          width: sensorSize,
-          height: sensorSize,
+          width: NODE_CONTAINER_SIZE,
+          height: NODE_CONTAINER_SIZE,
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
@@ -178,4 +179,3 @@ export function CircularNode({ data }: NodeProps) {
     </div>
   );
 }
-

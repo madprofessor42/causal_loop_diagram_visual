@@ -1,50 +1,36 @@
-import { Position, type Node } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
+import {
+  NODE_RADIUS,
+  NODE_CONTAINER_SIZE,
+  EDGE_GAP,
+  BASE_CONTROL_DISTANCE,
+} from '../constants';
+import type { EdgeParams, EdgeAngles } from '../types';
 
-interface EdgeParams {
-  sx: number;
-  sy: number;
-  tx: number;
-  ty: number;
-  sourcePos: Position;
-  targetPos: Position;
-  // Control point offsets for bezier curve (0 means straight line)
-  sourceControlOffsetX: number;
-  sourceControlOffsetY: number;
-  targetControlOffsetX: number;
-  targetControlOffsetY: number;
-}
-
-interface EdgeAngles {
-  sourceAngle?: number;
-  targetAngle?: number;
-}
-
-// Node radius (assuming circular nodes of 40px radius)
-const RADIUS = 40;
-// Outer threshold must match CircularNode.tsx
-const OUTER_THRESHOLD = 10;
-// Gap between edge and node circle for cleaner visual
-// Must be > OUTER_THRESHOLD so edge handles don't overlap with node connection zone
-const EDGE_GAP = 15;
-// Base control point distance
-const BASE_CONTROL_DISTANCE = 50;
-
-// Normalize angle to [-PI, PI]
+/**
+ * Normalize angle to [-PI, PI]
+ */
 function normalizeAngle(angle: number): number {
   while (angle > Math.PI) angle -= 2 * Math.PI;
   while (angle < -Math.PI) angle += 2 * Math.PI;
   return angle;
 }
 
-// Calculate edge connection points for floating edges
+/**
+ * Calculate edge connection points for floating edges
+ * 
+ * @param source - Source node
+ * @param target - Target node  
+ * @param angles - Optional custom connection angles
+ * @returns Edge parameters including start/end points and control offsets
+ */
 export function getEdgeParams(source: Node, target: Node, angles?: EdgeAngles): EdgeParams {
   // Use computed positions from React Flow
   const sourcePosition = source.position;
   const targetPosition = target.position;
 
   // Container size includes outer threshold, so actual node center is offset
-  const containerSize = (RADIUS + OUTER_THRESHOLD) * 2;
-  const nodeWidth = source.measured?.width ?? containerSize;
+  const nodeWidth = source.measured?.width ?? NODE_CONTAINER_SIZE;
   const nodeCenterOffset = nodeWidth / 2;
 
   const sourceX = sourcePosition.x + nodeCenterOffset;
@@ -61,10 +47,10 @@ export function getEdgeParams(source: Node, target: Node, angles?: EdgeAngles): 
   const targetAngle = angles?.targetAngle ?? idealTargetAngle;
 
   // Calculate edge start and end points with gap from circle perimeters
-  const sx = sourceX + (RADIUS + EDGE_GAP) * Math.cos(sourceAngle);
-  const sy = sourceY + (RADIUS + EDGE_GAP) * Math.sin(sourceAngle);
-  const tx = targetX + (RADIUS + EDGE_GAP) * Math.cos(targetAngle);
-  const ty = targetY + (RADIUS + EDGE_GAP) * Math.sin(targetAngle);
+  const sx = sourceX + (NODE_RADIUS + EDGE_GAP) * Math.cos(sourceAngle);
+  const sy = sourceY + (NODE_RADIUS + EDGE_GAP) * Math.sin(sourceAngle);
+  const tx = targetX + (NODE_RADIUS + EDGE_GAP) * Math.cos(targetAngle);
+  const ty = targetY + (NODE_RADIUS + EDGE_GAP) * Math.sin(targetAngle);
 
   // Calculate angle deviations from ideal straight line
   const sourceDeviation = Math.abs(normalizeAngle(sourceAngle - idealSourceAngle));
@@ -107,12 +93,9 @@ export function getEdgeParams(source: Node, target: Node, angles?: EdgeAngles): 
     sy,
     tx,
     ty,
-    sourcePos: Position.Bottom,
-    targetPos: Position.Top,
     sourceControlOffsetX,
     sourceControlOffsetY,
     targetControlOffsetX,
     targetControlOffsetY,
   };
 }
-

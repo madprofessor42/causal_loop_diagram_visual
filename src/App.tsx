@@ -1,21 +1,19 @@
-import { useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
   Controls,
   Background,
-  useNodesState,
-  useEdgesState,
-  addEdge,
   ReactFlowProvider,
   BackgroundVariant,
   ConnectionMode,
+  addEdge as addEdgeUtil,
   type OnConnect,
   type OnConnectStart,
-  type Node,
-  type Edge,
   type NodeTypes,
   type Connection,
+  type NodeChange,
+  type EdgeChange,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -23,16 +21,27 @@ import './App.css';
 
 import { CircularNode } from './components/CircularNode';
 import FloatingEdge from './components/FloatingEdge';
-import type { CircularNodeData, FloatingEdgeData } from './types';
+import type { BaseEdgeData, CLDNode, CLDEdge } from './types';
+import {
+  NODE_RADIUS,
+  NODE_INNER_THRESHOLD,
+  NODE_OUTER_THRESHOLD,
+} from './constants';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import {
+  diagramActions,
+  selectNodes,
+  selectEdges,
+} from './store/slices/diagramSlice';
 
 // Context to pass edge update function to edge components
-export type UpdateEdgeData = (edgeId: string, data: Partial<FloatingEdgeData>) => void;
+export type UpdateEdgeData = (edgeId: string, data: Partial<BaseEdgeData>) => void;
 
 const nodeTypes: NodeTypes = {
   circular: CircularNode,
 };
 
-const initialNodes: Node<CircularNodeData>[] = [
+const initialNodes: CLDNode[] = [
   {
     id: '1',
     type: 'circular',
@@ -53,13 +62,6 @@ const initialNodes: Node<CircularNodeData>[] = [
   },
 ];
 
-const initialEdges: Edge<FloatingEdgeData>[] = [];
-
-// Node radius and connection zone thresholds (must match CircularNode.tsx)
-const RADIUS = 40;
-const INNER_THRESHOLD = 10;
-const OUTER_THRESHOLD = 10;
-
 // Helper to calculate angle from node center to a point
 function calculateAngleFromNodeCenter(
   nodeElement: Element,
@@ -72,37 +74,49 @@ function calculateAngleFromNodeCenter(
   return Math.atan2(clientY - centerY, clientX - centerX);
 }
 
-// Update edge data helper that will be passed to edges
-function useEdgeUpdater(setEdges: ReturnType<typeof useEdgesState>[1]) {
-  return useCallback((edgeId: string, newData: Partial<FloatingEdgeData>) => {
-    setEdges((eds) =>
-      eds.map((edge) => {
-        if (edge.id === edgeId) {
-          return {
-            ...edge,
-            data: {
-              ...edge.data,
-              ...newData,
-            },
-          };
-        }
-        return edge;
-      })
-    );
-  }, [setEdges]);
-}
-
 function Flow() {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const dispatch = useAppDispatch();
+  const nodes = useAppSelector(selectNodes);
+  const edges = useAppSelector(selectEdges);
+  
   const pendingConnectionRef = useRef<Connection | null>(null);
   const sourceAngleRef = useRef<number | null>(null);
   
-  const updateEdgeData = useEdgeUpdater(setEdges);
+  // Инициализация начальных узлов при монтировании
+  useEffect(() => {
+    if (nodes.length === 0) {
+      dispatch(diagramActions.setNodes(initialNodes));
+    }
+  }, [dispatch, nodes.length]);
+  
+  // Обработчики изменений для React Flow -> Redux
+  const onNodesChange = useCallback(
+    (changes: NodeChange<CLDNode>[]) => {
+      dispatch(diagramActions.onNodesChange(changes));
+    },
+    [dispatch]
+  );
+  
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange<CLDEdge>[]) => {
+      dispatch(diagramActions.onEdgesChange(changes));
+    },
+    [dispatch]
+  );
+  
+  // Обновление данных edge через Redux
+  const updateEdgeData = useCallback(
+    (edgeId: string, newData: Partial<BaseEdgeData>) => {
+      dispatch(diagramActions.updateEdgeData({ id: edgeId, data: newData }));
+    },
+    [dispatch]
+  );
   
   // Create edge types with updateEdgeData bound
   const edgeTypesWithUpdate = useMemo(() => ({
-    floating: (props: any) => <FloatingEdge {...props} updateEdgeData={updateEdgeData} />,
+    floating: (props: React.ComponentProps<typeof FloatingEdge>) => (
+      <FloatingEdge {...props} updateEdgeData={updateEdgeData} />
+    ),
   }), [updateEdgeData]);
 
   const onConnectStart: OnConnectStart = useCallback(
@@ -152,18 +166,17 @@ function Flow() {
       const targetNodeElement = document.querySelector(`[data-id="${connection.target}"]`);
       if (!targetNodeElement) {
         // Still complete connection if we can't find element (fallback)
-        setEdges((eds) =>
-          addEdge(
-            {
-              ...connection,
-              type: 'floating',
-              data: {
-                sourceAngle: sourceAngle ?? undefined,
-              },
+        const newEdges = addEdgeUtil(
+          {
+            ...connection,
+            type: 'floating',
+            data: {
+              sourceAngle: sourceAngle ?? undefined,
             },
-            eds
-          )
+          },
+          edges
         );
+        dispatch(diagramActions.setEdges(newEdges as CLDEdge[]));
         return;
       }
 
@@ -173,11 +186,10 @@ function Flow() {
       const centerY = rect.top + rect.height / 2;
 
       // Calculate actual rendered radius (accounts for zoom)
-      // Container size = (RADIUS + OUTER_THRESHOLD) * 2
       const actualContainerRadius = rect.width / 2;
-      const scale = actualContainerRadius / (RADIUS + OUTER_THRESHOLD);
-      const actualRadius = RADIUS * scale;
-      const actualInnerThreshold = INNER_THRESHOLD * scale;
+      const scale = actualContainerRadius / (NODE_RADIUS + NODE_OUTER_THRESHOLD);
+      const actualRadius = NODE_RADIUS * scale;
+      const actualInnerThreshold = NODE_INNER_THRESHOLD * scale;
 
       // Calculate distance from drop point to node center
       const distance = Math.sqrt(
@@ -192,23 +204,22 @@ function Flow() {
 
       // Only complete connection if dropped in edge zone (not center)
       if (distance >= minDistance) {
-        setEdges((eds) =>
-          addEdge(
-            {
-              ...connection,
-              type: 'floating',
-              data: {
-                sourceAngle: sourceAngle ?? undefined,
-                targetAngle,
-              },
+        const newEdges = addEdgeUtil(
+          {
+            ...connection,
+            type: 'floating',
+            data: {
+              sourceAngle: sourceAngle ?? undefined,
+              targetAngle,
             },
-            eds
-          )
+          },
+          edges
         );
+        dispatch(diagramActions.setEdges(newEdges as CLDEdge[]));
       }
       // If dropped in center, connection is silently rejected
     },
-    [setEdges]
+    [dispatch, edges]
   );
 
   return (
@@ -246,4 +257,3 @@ function App() {
 }
 
 export default App;
-
