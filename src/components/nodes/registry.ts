@@ -1,6 +1,7 @@
 import type { NodeTypes } from '@xyflow/react';
-import type { BaseNodeData, NodeVariant } from '../../types';
-import { CircularNode } from '../CircularNode';
+import type { BaseNodeData, NodeVariant, StockNodeData, VariableNodeData } from '../../types';
+import { StockNode } from './StockNode';
+import { VariableNode } from './VariableNode';
 import { nanoid } from 'nanoid';
 
 /**
@@ -18,14 +19,25 @@ interface NodeMetadata {
  * Used for UI components like toolbars and palettes
  */
 export const nodeMetadata: Record<NodeVariant, NodeMetadata> = {
-  circular: {
-    type: 'circular',
-    defaultData: () => ({
+  stock: {
+    type: 'stock',
+    defaultData: (): StockNodeData => ({
+      label: 'Stock',
+      initialValue: 0,
+      notes: '',
+    }),
+    displayName: 'Stock',
+    description: 'Accumulator - stores and accumulates values',
+  },
+  variable: {
+    type: 'variable',
+    defaultData: (): VariableNodeData => ({
       label: 'Variable',
+      value: '0',
       notes: '',
     }),
     displayName: 'Variable',
-    description: 'Standard CLD variable node',
+    description: 'Formula or constant value',
   },
 };
 
@@ -33,7 +45,8 @@ export const nodeMetadata: Record<NodeVariant, NodeMetadata> = {
  * NodeTypes for React Flow - maps type names to components
  */
 export const nodeTypes: NodeTypes = {
-  circular: CircularNode,
+  stock: StockNode,
+  variable: VariableNode,
 };
 
 /**
@@ -44,7 +57,7 @@ export const getNodeMetadata = (): NodeMetadata[] => Object.values(nodeMetadata)
 /**
  * Get specific node metadata by type
  */
-export const getNodeMetadataByType = (type: NodeVariant): NodeMetadata | undefined => 
+export const getNodeMetadataByType = (type: NodeVariant): NodeMetadata | undefined =>
   nodeMetadata[type];
 
 /**

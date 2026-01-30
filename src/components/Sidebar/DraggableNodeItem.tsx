@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import { useAppDispatch } from '../../store/hooks';
 import { uiActions } from '../../store/slices/uiSlice';
 import type { NodeVariant } from '../../types';
-import { NODE_COLORS } from '../../constants';
+import { STOCK_COLORS, VARIABLE_COLORS } from '../../constants';
 
 interface DraggableNodeItemProps {
   nodeType: NodeVariant;
@@ -42,6 +42,10 @@ export function DraggableNodeItem({ nodeType, label }: DraggableNodeItemProps) {
     dispatch(uiActions.setDragEnd());
   }, [dispatch]);
 
+  // Get colors based on node type
+  const colors = nodeType === 'stock' ? STOCK_COLORS : VARIABLE_COLORS;
+  const isStock = nodeType === 'stock';
+
   return (
     <div
       className="draggable-node-item"
@@ -64,21 +68,21 @@ export function DraggableNodeItem({ nodeType, label }: DraggableNodeItemProps) {
       {/* Node preview icon */}
       <div
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          background: NODE_COLORS.default.background,
-          border: `2px solid ${NODE_COLORS.default.border}`,
+          width: isStock ? 36 : 32,
+          height: isStock ? 24 : 32,
+          borderRadius: isStock ? '4px' : '50%',
+          background: colors.background,
+          border: `2px solid ${colors.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: NODE_COLORS.default.text,
-          fontSize: '12px',
+          color: colors.text,
+          fontSize: '10px',
           fontWeight: 500,
           flexShrink: 0,
         }}
       >
-        {nodeType === 'circular' ? '○' : '?'}
+        {isStock ? '□' : '○'}
       </div>
       
       {/* Label */}

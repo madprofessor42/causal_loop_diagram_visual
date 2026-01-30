@@ -1,5 +1,14 @@
 import { useReactFlow } from '@xyflow/react';
-import { NODE_RADIUS, NODE_COLORS, NODE_OUTER_THRESHOLD } from '../constants';
+import { useAppSelector } from '../store/hooks';
+import { selectDragNodeType } from '../store/slices/uiSlice';
+import {
+  STOCK_WIDTH,
+  STOCK_HEIGHT,
+  STOCK_COLORS,
+  VARIABLE_WIDTH,
+  VARIABLE_HEIGHT,
+  VARIABLE_COLORS,
+} from '../constants';
 
 interface GhostNodeProps {
   position: { x: number; y: number };
@@ -13,16 +22,19 @@ interface GhostNodeProps {
  */
 export function GhostNode({ position }: GhostNodeProps) {
   const { getViewport } = useReactFlow();
+  const nodeType = useAppSelector(selectDragNodeType);
   const { x: viewX, y: viewY, zoom } = getViewport();
   
   // Convert flow position to screen position within the ReactFlow container
-  // Flow position needs to be transformed by viewport: screenPos = flowPos * zoom + viewportOffset
   const screenX = position.x * zoom + viewX;
   const screenY = position.y * zoom + viewY;
   
-  // Scale the node size based on zoom
-  const scaledRadius = NODE_RADIUS * zoom;
-  const scaledOuterThreshold = NODE_OUTER_THRESHOLD * zoom;
+  const isStock = nodeType === 'stock';
+  const colors = isStock ? STOCK_COLORS : VARIABLE_COLORS;
+  
+  // Scale the node size based on zoom and node type
+  const scaledWidth = (isStock ? STOCK_WIDTH : VARIABLE_WIDTH) * zoom;
+  const scaledHeight = (isStock ? STOCK_HEIGHT : VARIABLE_HEIGHT) * zoom;
   
   return (
     <div
@@ -31,35 +43,24 @@ export function GhostNode({ position }: GhostNodeProps) {
         position: 'absolute',
         left: screenX,
         top: screenY,
-        width: (scaledRadius + scaledOuterThreshold) * 2,
-        height: (scaledRadius + scaledOuterThreshold) * 2,
+        width: scaledWidth,
+        height: scaledHeight,
         pointerEvents: 'none',
         transform: 'translate(-50%, -50%)',
         zIndex: 1000,
+        borderRadius: isStock ? 4 * zoom : '50%',
+        background: colors.background,
+        border: `2px solid ${colors.border}`,
+        opacity: 0.5,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: colors.text,
+        fontWeight: 500,
+        fontSize: `${14 * zoom}px`,
       }}
     >
-      {/* The visual circle */}
-      <div
-        style={{
-          position: 'absolute',
-          left: scaledOuterThreshold,
-          top: scaledOuterThreshold,
-          width: scaledRadius * 2,
-          height: scaledRadius * 2,
-          borderRadius: '50%',
-          background: NODE_COLORS.default.background,
-          border: `2px solid ${NODE_COLORS.default.border}`,
-          opacity: 0.5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: NODE_COLORS.default.text,
-          fontWeight: 500,
-          fontSize: `${14 * zoom}px`,
-        }}
-      >
-        ?
-      </div>
+      {isStock ? 'Stock' : 'Var'}
     </div>
   );
 }

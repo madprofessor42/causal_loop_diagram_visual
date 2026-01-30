@@ -48,7 +48,8 @@ export function Sidebar() {
             gap: '8px',
           }}
         >
-          <DraggableNodeItem nodeType="circular" label="Variable" />
+          <DraggableNodeItem nodeType="stock" label="Stock" />
+          <DraggableNodeItem nodeType="variable" label="Variable" />
         </div>
       </div>
     </aside>

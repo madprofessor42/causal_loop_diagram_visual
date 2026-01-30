@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { NodeVariant } from '../../types';
+import type { NodeVariant, EdgeVariant } from '../../types';
 
 export type EditingMode = 'select' | 'pan';
 export type SidebarPanel = 'properties' | 'nodes' | 'settings' | null;
@@ -16,6 +16,8 @@ interface UIState {
   showMinimap: boolean;
   showGrid: boolean;
   drag: DragState;
+  /** Current connection mode - determines what type of edge is created */
+  connectionMode: EdgeVariant;
 }
 
 const initialState: UIState = {
@@ -28,6 +30,7 @@ const initialState: UIState = {
     nodeType: null,
     ghostPosition: null,
   },
+  connectionMode: 'link',
 };
 
 export const uiSlice = createSlice({
@@ -60,6 +63,13 @@ export const uiSlice = createSlice({
       state.drag.nodeType = null;
       state.drag.ghostPosition = null;
     },
+    // Connection mode actions
+    setConnectionMode: (state, action: PayloadAction<EdgeVariant>) => {
+      state.connectionMode = action.payload;
+    },
+    toggleConnectionMode: (state) => {
+      state.connectionMode = state.connectionMode === 'link' ? 'flow' : 'link';
+    },
   },
 });
 
@@ -75,3 +85,4 @@ export const selectDragState = (state: { ui: UIState }) => state.ui.drag;
 export const selectIsDragging = (state: { ui: UIState }) => state.ui.drag.isDragging;
 export const selectGhostPosition = (state: { ui: UIState }) => state.ui.drag.ghostPosition;
 export const selectDragNodeType = (state: { ui: UIState }) => state.ui.drag.nodeType;
+export const selectConnectionMode = (state: { ui: UIState }) => state.ui.connectionMode;

@@ -5,15 +5,14 @@
 // Edge visual properties
 export const EDGE_STROKE_WIDTH = 1.5;
 export const EDGE_HOVER_STROKE_WIDTH = 4;
-export const EDGE_GAP = 15;  // Gap between edge and node circle
+export const EDGE_GAP = 15;  // Gap between edge and node
 
 // Edge colors
 export const EDGE_COLORS = {
   default: '#1a1a1a',
   hover: '#3b82f6',
-  positive: '#22c55e',
-  negative: '#ef4444',
-  neutral: '#6b7280',
+  link: '#666666',    // Link edge color (gray)
+  flow: '#5b9bd5',    // Flow edge color (blue)
 } as const;
 
 // Arrow configuration
@@ -22,12 +21,19 @@ export const ARROW_SIZE = 8;
 // Control point calculation for bezier curves
 export const BASE_CONTROL_DISTANCE = 50;
 
-// Polarity marker (+/- symbol on edges)
-export const POLARITY_MARKER = {
-  size: 14,
-  offset: 20,  // Distance from target along edge
-  fontSize: 12,
-  fontWeight: 'bold',
+// Link edge style (dashed line for information connections)
+export const LINK_EDGE = {
+  strokeWidth: 1.5,
+  color: '#666666',
+  dashArray: '5,5',
+} as const;
+
+// Flow edge style (thick arrow for material flows)
+export const FLOW_EDGE = {
+  strokeWidth: 3,
+  color: '#5b9bd5',
+  cloudSize: 20,      // Size of cloud indicator when source/target is null
+  valveSize: 10,      // Size of valve indicator on flow
 } as const;
 
 // Delay marker (|| symbol for delayed effects)

@@ -1,101 +1,121 @@
 import type { Node } from '@xyflow/react';
 import {
-  NODE_RADIUS,
-  NODE_CONTAINER_SIZE,
-  EDGE_GAP,
-  BASE_CONTROL_DISTANCE,
+  STOCK_WIDTH,
+  STOCK_HEIGHT,
+  VARIABLE_WIDTH,
+  VARIABLE_HEIGHT,
 } from '../constants';
-import type { EdgeParams, EdgeAngles } from '../types';
+import type { StraightEdgeParams } from '../types';
 
 /**
- * Normalize angle to [-PI, PI]
+ * Get node dimensions based on type
  */
-function normalizeAngle(angle: number): number {
-  while (angle > Math.PI) angle -= 2 * Math.PI;
-  while (angle < -Math.PI) angle += 2 * Math.PI;
-  return angle;
+function getNodeDimensions(node: Node): { width: number; height: number } {
+  if (node.type === 'stock') {
+    return { width: STOCK_WIDTH, height: STOCK_HEIGHT };
+  }
+  // variable or default
+  return { width: VARIABLE_WIDTH, height: VARIABLE_HEIGHT };
 }
 
 /**
- * Calculate edge connection points for floating edges
- * 
- * @param source - Source node
- * @param target - Target node  
- * @param angles - Optional custom connection angles
- * @returns Edge parameters including start/end points and control offsets
+ * Calculate point on node edge at given angle
+ * Handles rectangles (Stock) and ellipses (Variable)
  */
-export function getEdgeParams(source: Node, target: Node, angles?: EdgeAngles): EdgeParams {
+function getEdgePointAtAngle(
+  centerX: number,
+  centerY: number,
+  nodeType: string | undefined,
+  angle: number
+): { x: number; y: number } {
+  if (nodeType === 'stock') {
+    // Rectangle - find intersection with edge
+    const halfWidth = STOCK_WIDTH / 2;
+    const halfHeight = STOCK_HEIGHT / 2;
+    
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    
+    // Determine which edge we intersect
+    const tanAngle = Math.abs(sin / cos);
+    const edgeTan = halfHeight / halfWidth;
+    
+    let x: number, y: number;
+    
+    if (tanAngle <= edgeTan) {
+      // Intersects left or right edge
+      x = cos > 0 ? halfWidth : -halfWidth;
+      y = x * (sin / cos);
+    } else {
+      // Intersects top or bottom edge
+      y = sin > 0 ? halfHeight : -halfHeight;
+      x = y * (cos / sin);
+    }
+    
+    return {
+      x: centerX + x,
+      y: centerY + y,
+    };
+  } else {
+    // Ellipse (Variable) - parametric ellipse equation
+    const radiusX = VARIABLE_WIDTH / 2;
+    const radiusY = VARIABLE_HEIGHT / 2;
+    
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    
+    // Point on ellipse edge
+    const x = radiusX * cos;
+    const y = radiusY * sin;
+    
+    return {
+      x: centerX + x,
+      y: centerY + y,
+    };
+  }
+}
+
+/**
+ * Calculate straight edge connection points
+ * 
+ * Connects center-to-center, with edge points calculated at shape boundaries
+ *
+ * @param source - Source node
+ * @param target - Target node
+ * @returns Edge parameters including start/end points at shape boundaries
+ */
+export function getStraightEdgeParams(source: Node, target: Node): StraightEdgeParams {
   // Use computed positions from React Flow
   const sourcePosition = source.position;
   const targetPosition = target.position;
 
-  // Container size includes outer threshold, so actual node center is offset
-  const nodeWidth = source.measured?.width ?? NODE_CONTAINER_SIZE;
-  const nodeCenterOffset = nodeWidth / 2;
+  // Get node dimensions
+  const sourceDims = getNodeDimensions(source);
+  const targetDims = getNodeDimensions(target);
 
-  const sourceX = sourcePosition.x + nodeCenterOffset;
-  const sourceY = sourcePosition.y + nodeCenterOffset;
-  const targetX = targetPosition.x + nodeCenterOffset;
-  const targetY = targetPosition.y + nodeCenterOffset;
+  // Calculate center of each node
+  const sourceWidth = source.measured?.width ?? sourceDims.width;
+  const sourceHeight = source.measured?.height ?? sourceDims.height;
+  const targetWidth = target.measured?.width ?? targetDims.width;
+  const targetHeight = target.measured?.height ?? targetDims.height;
 
-  // Calculate the "ideal" straight angles (pointing directly at each other)
-  const idealSourceAngle = Math.atan2(targetY - sourceY, targetX - sourceX);
-  const idealTargetAngle = Math.atan2(sourceY - targetY, sourceX - targetX);
+  const sourceX = sourcePosition.x + sourceWidth / 2;
+  const sourceY = sourcePosition.y + sourceHeight / 2;
+  const targetX = targetPosition.x + targetWidth / 2;
+  const targetY = targetPosition.y + targetHeight / 2;
 
-  // Use provided angles if available, otherwise use ideal angles
-  const sourceAngle = angles?.sourceAngle ?? idealSourceAngle;
-  const targetAngle = angles?.targetAngle ?? idealTargetAngle;
+  // Calculate angles (pointing at each other)
+  const sourceAngle = Math.atan2(targetY - sourceY, targetX - sourceX);
+  const targetAngle = Math.atan2(sourceY - targetY, sourceX - targetX);
 
-  // Calculate edge start and end points with gap from circle perimeters
-  const sx = sourceX + (NODE_RADIUS + EDGE_GAP) * Math.cos(sourceAngle);
-  const sy = sourceY + (NODE_RADIUS + EDGE_GAP) * Math.sin(sourceAngle);
-  const tx = targetX + (NODE_RADIUS + EDGE_GAP) * Math.cos(targetAngle);
-  const ty = targetY + (NODE_RADIUS + EDGE_GAP) * Math.sin(targetAngle);
-
-  // Calculate angle deviations from ideal straight line
-  const sourceDeviation = Math.abs(normalizeAngle(sourceAngle - idealSourceAngle));
-  const targetDeviation = Math.abs(normalizeAngle(targetAngle - idealTargetAngle));
-
-  // Calculate the angle between source exit direction and target entry direction
-  // This tells us how much the curve needs to "turn"
-  const exitToEntryAngle = Math.abs(normalizeAngle(sourceAngle - (targetAngle + Math.PI)));
-  
-  // Calculate distance between edge points
-  const edgeLength = Math.sqrt(Math.pow(tx - sx, 2) + Math.pow(ty - sy, 2));
-  
-  // Dynamic curve intensity based on:
-  // 1. How much we deviate from straight line (sourceDeviation, targetDeviation)
-  // 2. How much the curve needs to "turn" (exitToEntryAngle)
-  // 3. Edge length (longer edges need proportionally more control distance)
-  
-  // The turn factor: 0 when going straight, 1 when making U-turn
-  const turnFactor = exitToEntryAngle / Math.PI;
-  
-  // Minimum control distance based on edge length
-  const minControlDistance = Math.max(BASE_CONTROL_DISTANCE, edgeLength * 0.3);
-  
-  // Scale up control distance based on deviation and turn factor
-  // More deviation or more turning = more control distance needed
-  const sourceIntensity = Math.max(sourceDeviation / Math.PI, turnFactor * 0.5);
-  const targetIntensity = Math.max(targetDeviation / Math.PI, turnFactor * 0.5);
-  
-  const sourceControlDist = minControlDistance * (0.5 + sourceIntensity);
-  const targetControlDist = minControlDistance * (0.5 + targetIntensity);
-
-  // Control points extend in the direction the connection is pointing
-  const sourceControlOffsetX = sourceControlDist * Math.cos(sourceAngle);
-  const sourceControlOffsetY = sourceControlDist * Math.sin(sourceAngle);
-  const targetControlOffsetX = targetControlDist * Math.cos(targetAngle);
-  const targetControlOffsetY = targetControlDist * Math.sin(targetAngle);
+  // Calculate edge start and end points on node edges
+  const sourcePoint = getEdgePointAtAngle(sourceX, sourceY, source.type, sourceAngle);
+  const targetPoint = getEdgePointAtAngle(targetX, targetY, target.type, targetAngle);
 
   return {
-    sx,
-    sy,
-    tx,
-    ty,
-    sourceControlOffsetX,
-    sourceControlOffsetY,
-    targetControlOffsetX,
-    targetControlOffsetY,
+    sx: sourcePoint.x,
+    sy: sourcePoint.y,
+    tx: targetPoint.x,
+    ty: targetPoint.y,
   };
 }

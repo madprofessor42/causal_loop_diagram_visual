@@ -2,36 +2,24 @@
  * Node constants - shared across all node components
  */
 
-// Node dimensions
-export const NODE_RADIUS = 40;
-export const NODE_INNER_THRESHOLD = 10;  // How far inside circle edge to start showing handles
-export const NODE_OUTER_THRESHOLD = 5;  // How far outside circle edge to keep showing handles
+// Stock node dimensions (rectangle)
+export const STOCK_WIDTH = 100;
+export const STOCK_HEIGHT = 60;
 
-// Node colors
-export const NODE_COLORS = {
-  default: {
-    background: '#6366f1',
-    border: '#4338ca',
-    text: '#ffffff',
-  },
-  selected: {
-    background: '#818cf8',
-    border: '#6366f1',
-    text: '#ffffff',
-  },
-  hover: {
-    background: '#a5b4fc',
-    border: '#818cf8',
-    text: '#ffffff',
-  },
+// Variable node dimensions (oval)
+export const VARIABLE_WIDTH = 100;
+export const VARIABLE_HEIGHT = 50;
+
+// Stock node colors (blue)
+export const STOCK_COLORS = {
+  background: '#a8c5e2',  // light blue
+  border: '#5b9bd5',
+  text: '#1a1a1a',
 } as const;
 
-// Handle indicator (green dot showing connection point)
-export const HANDLE_INDICATOR = {
-  size: 12,
-  color: '#22c55e',
-  borderColor: '#16a34a',
+// Variable node colors (orange)
+export const VARIABLE_COLORS = {
+  background: '#f8cbad',  // peach/orange
+  border: '#ed7d31',
+  text: '#1a1a1a',
 } as const;
-
-// Derived values
-export const NODE_CONTAINER_SIZE = (NODE_RADIUS + NODE_OUTER_THRESHOLD) * 2;

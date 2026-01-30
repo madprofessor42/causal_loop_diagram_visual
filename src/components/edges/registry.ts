@@ -1,6 +1,7 @@
 import type { EdgeTypes } from '@xyflow/react';
-import type { BaseEdgeData, EdgeVariant, Polarity } from '../../types';
-import FloatingEdge from '../FloatingEdge';
+import type { BaseEdgeData, EdgeVariant, LinkEdgeData, FlowEdgeData } from '../../types';
+import LinkEdge from './LinkEdge';
+import FlowEdge from './FlowEdge';
 import { nanoid } from 'nanoid';
 
 /**
@@ -18,15 +19,24 @@ interface EdgeMetadata {
  * Used for UI components
  */
 export const edgeMetadata: Record<EdgeVariant, EdgeMetadata> = {
-  floating: {
-    type: 'floating',
-    defaultData: () => ({
-      polarity: 'positive' as Polarity,
+  link: {
+    type: 'link',
+    defaultData: (): LinkEdgeData => ({
+      delay: false,
+      lineStyle: 'dashed',
+    }),
+    displayName: 'Link',
+    description: 'Information connection (dashed line)',
+  },
+  flow: {
+    type: 'flow',
+    defaultData: (): FlowEdgeData => ({
       delay: false,
       lineStyle: 'solid',
+      rate: '0',
     }),
-    displayName: 'Causal Link',
-    description: 'Curved edge with adjustable connection points',
+    displayName: 'Flow',
+    description: 'Material flow between Stocks (thick arrow)',
   },
 };
 
@@ -34,7 +44,8 @@ export const edgeMetadata: Record<EdgeVariant, EdgeMetadata> = {
  * EdgeTypes for React Flow - maps type names to components
  */
 export const edgeTypes: EdgeTypes = {
-  floating: FloatingEdge,
+  link: LinkEdge,
+  flow: FlowEdge,
 };
 
 /**
@@ -45,7 +56,7 @@ export const getEdgeMetadata = (): EdgeMetadata[] => Object.values(edgeMetadata)
 /**
  * Get specific edge metadata by type
  */
-export const getEdgeMetadataByType = (type: EdgeVariant): EdgeMetadata | undefined => 
+export const getEdgeMetadataByType = (type: EdgeVariant): EdgeMetadata | undefined =>
   edgeMetadata[type];
 
 /**
@@ -55,7 +66,6 @@ export function createEdge(
   type: EdgeVariant,
   source: string,
   target: string,
-  polarity: Polarity = 'positive',
   id?: string
 ) {
   const metadata = edgeMetadata[type];
@@ -68,9 +78,6 @@ export function createEdge(
     type,
     source,
     target,
-    data: {
-      ...metadata.defaultData(),
-      polarity,
-    },
+    data: metadata.defaultData(),
   };
 }
