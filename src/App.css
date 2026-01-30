@@ -86,3 +86,33 @@ body {
   cursor: grabbing !important;
 }
 
+/* Sidebar styles */
+.sidebar {
+  flex-shrink: 0;
+}
+
+.draggable-node-item:hover {
+  background-color: #f3f4f6 !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.15);
+}
+
+.draggable-node-item:active {
+  cursor: grabbing !important;
+  transform: scale(0.98);
+}
+
+/* Ghost node animation */
+.ghost-node {
+  animation: ghostPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ghostPulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+

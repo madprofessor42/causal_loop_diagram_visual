@@ -8,6 +8,7 @@ import {
   BackgroundVariant,
   ConnectionMode,
   addEdge as addEdgeUtil,
+  useReactFlow,
   type OnConnect,
   type OnConnectStart,
   type NodeTypes,
@@ -21,6 +22,8 @@ import './App.css';
 
 import { CircularNode } from './components/CircularNode';
 import FloatingEdge from './components/FloatingEdge';
+import { Sidebar } from './components/Sidebar';
+import { GhostNode } from './components/GhostNode';
 import type { BaseEdgeData, CLDNode, CLDEdge } from './types';
 import {
   NODE_RADIUS,
@@ -33,6 +36,11 @@ import {
   selectNodes,
   selectEdges,
 } from './store/slices/diagramSlice';
+import {
+  uiActions,
+  selectIsDragging,
+  selectGhostPosition,
+} from './store/slices/uiSlice';
 
 // Context to pass edge update function to edge components
 export type UpdateEdgeData = (edgeId: string, data: Partial<BaseEdgeData>) => void;
@@ -74,10 +82,46 @@ function calculateAngleFromNodeCenter(
   return Math.atan2(clientY - centerY, clientX - centerX);
 }
 
+// Counter for generating unique node IDs
+let nodeIdCounter = 4; // Start after initial nodes (1, 2, 3)
+
+function getNextNodeId(): string {
+  return `node_${nodeIdCounter++}`;
+}
+
+function getNextLabel(nodes: CLDNode[]): string {
+  // Find existing labels and get the next letter
+  const existingLabels = new Set(nodes.map(n => n.data.label));
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  
+  for (const letter of alphabet) {
+    if (!existingLabels.has(letter)) {
+      return letter;
+    }
+  }
+  
+  // If all single letters used, use double letters
+  for (let i = 0; i < alphabet.length; i++) {
+    for (let j = 0; j < alphabet.length; j++) {
+      const label = alphabet[i] + alphabet[j];
+      if (!existingLabels.has(label)) {
+        return label;
+      }
+    }
+  }
+  
+  return '?';
+}
+
 function Flow() {
   const dispatch = useAppDispatch();
   const nodes = useAppSelector(selectNodes);
   const edges = useAppSelector(selectEdges);
+  const isDragging = useAppSelector(selectIsDragging);
+  const ghostPosition = useAppSelector(selectGhostPosition);
+  
+  const { screenToFlowPosition } = useReactFlow();
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
   const pendingConnectionRef = useRef<Connection | null>(null);
   const sourceAngleRef = useRef<number | null>(null);
@@ -222,27 +266,106 @@ function Flow() {
     [dispatch, edges]
   );
 
+  // Drag and Drop handlers for sidebar items
+  const onDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      
+      // Convert screen coordinates to flow coordinates
+      // Ghost node will be centered at this position
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      
+      // Update ghost position in store
+      dispatch(uiActions.setGhostPosition(position));
+    },
+    [dispatch, screenToFlowPosition]
+  );
+
+  const onDragLeave = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      // Only clear if leaving the ReactFlow container (not entering a child)
+      const relatedTarget = event.relatedTarget as HTMLElement;
+      if (!relatedTarget || !reactFlowWrapper.current?.contains(relatedTarget)) {
+        dispatch(uiActions.setGhostPosition(null));
+      }
+    },
+    [dispatch]
+  );
+
+  const onDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      
+      const type = event.dataTransfer.getData('application/reactflow');
+      if (!type) return;
+      
+      // Get the drop position in flow coordinates
+      const cursorPosition = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      
+      // Offset the position so the visual circle center is at the cursor
+      // Node container position is top-left, visual circle center is at (NODE_RADIUS + NODE_OUTER_THRESHOLD)
+      const nodeOffset = NODE_RADIUS + NODE_OUTER_THRESHOLD;
+      const position = {
+        x: cursorPosition.x - nodeOffset,
+        y: cursorPosition.y - nodeOffset,
+      };
+      
+      // Create new node
+      const newNode: CLDNode = {
+        id: getNextNodeId(),
+        type: type as 'circular',
+        position,
+        data: { label: getNextLabel(nodes) },
+      };
+      
+      dispatch(diagramActions.addNode(newNode));
+      dispatch(uiActions.setDragEnd());
+    },
+    [dispatch, nodes, screenToFlowPosition]
+  );
+
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnectStart={onConnectStart}
-        onConnect={onConnect}
-        onConnectEnd={onConnectEnd}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypesWithUpdate}
-        connectionMode={ConnectionMode.Loose}
-        fitView
-        minZoom={0.5}
-        maxZoom={2}
+    <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
+      <Sidebar />
+      <div
+        ref={reactFlowWrapper}
+        style={{ flex: 1, height: '100%', position: 'relative' }}
       >
-        <Controls />
-        <MiniMap nodeColor="#6366f1" />
-        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-      </ReactFlow>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnectStart={onConnectStart}
+          onConnect={onConnect}
+          onConnectEnd={onConnectEnd}
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypesWithUpdate}
+          connectionMode={ConnectionMode.Loose}
+          fitView
+          minZoom={0.5}
+          maxZoom={2}
+        >
+          <Controls />
+          <MiniMap nodeColor="#6366f1" />
+          <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+          
+          {/* Ghost node preview during drag */}
+          {isDragging && ghostPosition && (
+            <GhostNode position={ghostPosition} />
+          )}
+        </ReactFlow>
+      </div>
     </div>
   );
 }
