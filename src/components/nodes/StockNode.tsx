@@ -63,7 +63,7 @@ export function StockNode({ data }: NodeProps) {
         )}
       </div>
 
-      {/* Center handle indicator - always visible, highlights on hover */}
+      {/* Center handle indicator - always visible for Stock, highlights on hover */}
       <div
         style={{
           position: 'absolute',

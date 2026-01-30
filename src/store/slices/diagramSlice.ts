@@ -53,34 +53,41 @@ export const diagramSlice = createSlice({
     addEdge: (state, action: PayloadAction<CLDEdge>) => {
       const newEdge = action.payload;
       
-      // Check for existing edge in same direction
-      const existingSameDirection = state.edges.find(
-        e => e.source === newEdge.source && e.target === newEdge.target && e.type === newEdge.type
-      );
+      // Flow edges with cloud targets can have multiple edges from same source
+      // (they use targetPosition for actual endpoint, target is just self-reference)
+      const isCloudEdge = newEdge.data?.targetIsCloud || newEdge.data?.sourceIsCloud;
       
-      if (existingSameDirection) {
-        // Edge already exists in same direction, don't add duplicate
-        return;
+      if (!isCloudEdge) {
+        // Check for existing edge in same direction
+        const existingSameDirection = state.edges.find(
+          e => e.source === newEdge.source && e.target === newEdge.target && e.type === newEdge.type
+        );
+        
+        if (existingSameDirection) {
+          // Edge already exists in same direction, don't add duplicate
+          return;
+        }
+        
+        // Check for existing edge in reverse direction (to make bidirectional)
+        const existingReverse = findExistingEdge(
+          state.edges,
+          newEdge.source,
+          newEdge.target,
+          newEdge.type ?? 'link'
+        );
+        
+        if (existingReverse) {
+          // Make the existing edge bidirectional instead of creating a new one
+          existingReverse.data = {
+            ...existingReverse.data,
+            bidirectional: true,
+          };
+          return;
+        }
       }
       
-      // Check for existing edge in reverse direction (to make bidirectional)
-      const existingReverse = findExistingEdge(
-        state.edges, 
-        newEdge.source, 
-        newEdge.target, 
-        newEdge.type ?? 'link'
-      );
-      
-      if (existingReverse) {
-        // Make the existing edge bidirectional instead of creating a new one
-        existingReverse.data = {
-          ...existingReverse.data,
-          bidirectional: true,
-        };
-      } else {
-        // No existing edge, add the new one
-        state.edges.push(newEdge);
-      }
+      // Add the new edge
+      state.edges.push(newEdge);
     },
     updateEdgeData: (state, action: PayloadAction<{ id: string; data: Partial<BaseEdgeData> }>) => {
       const edge = state.edges.find(e => e.id === action.payload.id);

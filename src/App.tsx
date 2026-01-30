@@ -231,10 +231,11 @@ function Flow() {
       const dropPosition = screenToFlowPosition({ x: clientX, y: clientY });
 
       // Create a flow edge with cloud at target
+      // Use sourceNodeId as target (self-reference) but with unique edge ID and targetPosition
       const newEdge: CLDEdge<FlowEdgeData> = {
         id: `edge_${sourceNodeId}_cloud_${Date.now()}`,
         source: sourceNodeId,
-        target: sourceNodeId, // Self-reference, but we use targetPosition
+        target: sourceNodeId, // Self-reference, but we use targetPosition for actual endpoint
         type: 'flow',
         data: {
           targetIsCloud: true,
