@@ -13,5 +13,11 @@ export interface HandlePosition {
   visible: boolean;
 }
 
-export type FloatingEdge = Edge;
+// Edge data to store connection angles for precise edge positioning
+export interface FloatingEdgeData extends Record<string, unknown> {
+  sourceAngle?: number; // Angle in radians from center where connection started
+  targetAngle?: number; // Angle in radians from center where connection ended
+}
+
+export type FloatingEdge = Edge<FloatingEdgeData>;
 

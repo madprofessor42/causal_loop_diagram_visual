@@ -11,6 +11,7 @@ import {
   BackgroundVariant,
   ConnectionMode,
   type OnConnect,
+  type OnConnectStart,
   type Node,
   type Edge,
   type NodeTypes,
@@ -22,7 +23,7 @@ import './App.css';
 
 import { CircularNode } from './components/CircularNode';
 import FloatingEdge from './components/FloatingEdge';
-import type { CircularNodeData } from './types';
+import type { CircularNodeData, FloatingEdgeData } from './types';
 
 const nodeTypes: NodeTypes = {
   circular: CircularNode,
@@ -53,16 +54,50 @@ const initialNodes: Node<CircularNodeData>[] = [
   },
 ];
 
-const initialEdges: Edge[] = [];
+const initialEdges: Edge<FloatingEdgeData>[] = [];
 
 // Node radius and connection zone thresholds (must match CircularNode.tsx)
 const RADIUS = 40;
 const INNER_THRESHOLD = 10;
+const OUTER_THRESHOLD = 10;
+
+// Helper to calculate angle from node center to a point
+function calculateAngleFromNodeCenter(
+  nodeElement: Element,
+  clientX: number,
+  clientY: number
+): number {
+  const rect = nodeElement.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  return Math.atan2(clientY - centerY, clientX - centerX);
+}
 
 function App() {
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const pendingConnectionRef = useRef<Connection | null>(null);
+  const sourceAngleRef = useRef<number | null>(null);
+
+  const onConnectStart: OnConnectStart = useCallback(
+    (event, { nodeId }) => {
+      if (!nodeId) return;
+
+      // Get mouse position
+      const clientX = 'touches' in event ? (event as TouchEvent).touches[0]?.clientX : (event as MouseEvent).clientX;
+      const clientY = 'touches' in event ? (event as TouchEvent).touches[0]?.clientY : (event as MouseEvent).clientY;
+
+      if (clientX === undefined || clientY === undefined) return;
+
+      // Find the source node element
+      const sourceNodeElement = document.querySelector(`[data-id="${nodeId}"]`);
+      if (!sourceNodeElement) return;
+
+      // Calculate and store the source angle
+      sourceAngleRef.current = calculateAngleFromNodeCenter(sourceNodeElement, clientX, clientY);
+    },
+    []
+  );
 
   const onConnect: OnConnect = useCallback(
     (connection) => {
@@ -75,7 +110,9 @@ function App() {
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent) => {
       const connection = pendingConnectionRef.current;
+      const sourceAngle = sourceAngleRef.current;
       pendingConnectionRef.current = null;
+      sourceAngleRef.current = null;
       
       if (!connection || !connection.target) return;
 
@@ -94,11 +131,8 @@ function App() {
             {
               ...connection,
               type: 'floating',
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                width: 20,
-                height: 20,
-                color: '#b1b1b7',
+              data: {
+                sourceAngle: sourceAngle ?? undefined,
               },
             },
             eds
@@ -113,8 +147,11 @@ function App() {
       const centerY = rect.top + rect.height / 2;
 
       // Calculate actual rendered radius (accounts for zoom)
-      const actualRadius = rect.width / 2;
-      const scale = actualRadius / RADIUS;
+      // Container size = (RADIUS + OUTER_THRESHOLD) * 2
+      const actualContainerRadius = rect.width / 2;
+      const scale = actualContainerRadius / (RADIUS + OUTER_THRESHOLD);
+      const actualRadius = RADIUS * scale;
+      const actualInnerThreshold = INNER_THRESHOLD * scale;
 
       // Calculate distance from drop point to node center
       const distance = Math.sqrt(
@@ -122,8 +159,10 @@ function App() {
       );
 
       // Calculate inner threshold (scaled for zoom)
-      const innerThresholdScaled = INNER_THRESHOLD * scale;
-      const minDistance = actualRadius - innerThresholdScaled;
+      const minDistance = actualRadius - actualInnerThreshold;
+
+      // Calculate target angle from drop position
+      const targetAngle = calculateAngleFromNodeCenter(targetNodeElement, clientX, clientY);
 
       // Only complete connection if dropped in edge zone (not center)
       if (distance >= minDistance) {
@@ -132,11 +171,9 @@ function App() {
             {
               ...connection,
               type: 'floating',
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                width: 20,
-                height: 20,
-                color: '#b1b1b7',
+              data: {
+                sourceAngle: sourceAngle ?? undefined,
+                targetAngle,
               },
             },
             eds
@@ -155,6 +192,7 @@ function App() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnectStart={onConnectStart}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}

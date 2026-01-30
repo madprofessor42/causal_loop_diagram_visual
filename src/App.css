@@ -13,13 +13,13 @@ body {
 }
 
 .react-flow__edge-path {
-  stroke: #b1b1b7;
-  stroke-width: 2;
+  stroke: #1a1a1a;
+  stroke-width: 1.5;
 }
 
 .react-flow__edge-path:hover {
   stroke: #6366f1;
-  stroke-width: 3;
+  stroke-width: 2;
 }
 
 .react-flow__handle {
@@ -54,10 +54,11 @@ body {
   background-color: #ffffff;
 }
 
-/* Connection line styling */
+/* Connection line styling while drawing */
 .react-flow__connection-path {
-  stroke: #6366f1;
-  stroke-width: 2;
+  stroke: #1a1a1a;
+  stroke-width: 1.5;
+  stroke-dasharray: 5, 5;
 }
 
 .react-flow__connection {
