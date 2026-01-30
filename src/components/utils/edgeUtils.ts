@@ -25,8 +25,8 @@ const RADIUS = 40;
 const OUTER_THRESHOLD = 10;
 // Gap between edge and node circle for cleaner visual
 const EDGE_GAP = 8;
-// Control point distance multiplier for curve intensity
-const CURVE_INTENSITY = 0.8;
+// Base control point distance
+const BASE_CONTROL_DISTANCE = 50;
 
 // Normalize angle to [-PI, PI]
 function normalizeAngle(angle: number): number {
@@ -66,19 +66,40 @@ export function getEdgeParams(source: Node, target: Node, angles?: EdgeAngles): 
   const ty = targetY + (RADIUS + EDGE_GAP) * Math.sin(targetAngle);
 
   // Calculate angle deviations from ideal straight line
-  const sourceDeviation = normalizeAngle(sourceAngle - idealSourceAngle);
-  const targetDeviation = normalizeAngle(targetAngle - idealTargetAngle);
+  const sourceDeviation = Math.abs(normalizeAngle(sourceAngle - idealSourceAngle));
+  const targetDeviation = Math.abs(normalizeAngle(targetAngle - idealTargetAngle));
 
-  // Calculate distance between edge points for curve scaling
+  // Calculate the angle between source exit direction and target entry direction
+  // This tells us how much the curve needs to "turn"
+  const exitToEntryAngle = Math.abs(normalizeAngle(sourceAngle - (targetAngle + Math.PI)));
+  
+  // Calculate distance between edge points
   const edgeLength = Math.sqrt(Math.pow(tx - sx, 2) + Math.pow(ty - sy, 2));
-  const curveDistance = edgeLength * CURVE_INTENSITY;
+  
+  // Dynamic curve intensity based on:
+  // 1. How much we deviate from straight line (sourceDeviation, targetDeviation)
+  // 2. How much the curve needs to "turn" (exitToEntryAngle)
+  // 3. Edge length (longer edges need proportionally more control distance)
+  
+  // The turn factor: 0 when going straight, 1 when making U-turn
+  const turnFactor = exitToEntryAngle / Math.PI;
+  
+  // Minimum control distance based on edge length
+  const minControlDistance = Math.max(BASE_CONTROL_DISTANCE, edgeLength * 0.3);
+  
+  // Scale up control distance based on deviation and turn factor
+  // More deviation or more turning = more control distance needed
+  const sourceIntensity = Math.max(sourceDeviation / Math.PI, turnFactor * 0.5);
+  const targetIntensity = Math.max(targetDeviation / Math.PI, turnFactor * 0.5);
+  
+  const sourceControlDist = minControlDistance * (0.5 + sourceIntensity);
+  const targetControlDist = minControlDistance * (0.5 + targetIntensity);
 
   // Control points extend in the direction the connection is pointing
-  // This creates a natural curve that follows the connection direction
-  const sourceControlOffsetX = curveDistance * Math.cos(sourceAngle) * Math.abs(sourceDeviation) / Math.PI;
-  const sourceControlOffsetY = curveDistance * Math.sin(sourceAngle) * Math.abs(sourceDeviation) / Math.PI;
-  const targetControlOffsetX = curveDistance * Math.cos(targetAngle) * Math.abs(targetDeviation) / Math.PI;
-  const targetControlOffsetY = curveDistance * Math.sin(targetAngle) * Math.abs(targetDeviation) / Math.PI;
+  const sourceControlOffsetX = sourceControlDist * Math.cos(sourceAngle);
+  const sourceControlOffsetY = sourceControlDist * Math.sin(sourceAngle);
+  const targetControlOffsetX = targetControlDist * Math.cos(targetAngle);
+  const targetControlOffsetY = targetControlDist * Math.sin(targetAngle);
 
   return {
     sx,
