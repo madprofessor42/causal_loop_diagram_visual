@@ -7,7 +7,6 @@ import {
   useNodesState,
   useEdgesState,
   addEdge,
-  useReactFlow,
   ReactFlowProvider,
   BackgroundVariant,
   ConnectionMode,
@@ -16,7 +15,6 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
-  type EdgeTypes,
   type Connection,
 } from '@xyflow/react';
 
@@ -32,10 +30,6 @@ export type UpdateEdgeData = (edgeId: string, data: Partial<FloatingEdgeData>) =
 
 const nodeTypes: NodeTypes = {
   circular: CircularNode,
-};
-
-const edgeTypes = {
-  floating: FloatingEdge,
 };
 
 const initialNodes: Node<CircularNodeData>[] = [

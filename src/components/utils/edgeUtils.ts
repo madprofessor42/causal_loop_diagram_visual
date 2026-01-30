@@ -24,7 +24,8 @@ const RADIUS = 40;
 // Outer threshold must match CircularNode.tsx
 const OUTER_THRESHOLD = 10;
 // Gap between edge and node circle for cleaner visual
-const EDGE_GAP = 8;
+// Must be > OUTER_THRESHOLD so edge handles don't overlap with node connection zone
+const EDGE_GAP = 15;
 // Base control point distance
 const BASE_CONTROL_DISTANCE = 50;
 

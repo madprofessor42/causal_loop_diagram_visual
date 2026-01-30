@@ -7,7 +7,7 @@ const RADIUS = 40;
 // How far inside the circle edge to start showing handles
 const INNER_THRESHOLD = 10;
 // How far outside the circle edge to keep showing handles
-const OUTER_THRESHOLD = 10;
+const OUTER_THRESHOLD = 5;
 
 export function CircularNode({ data }: NodeProps) {
   const [handlePos, setHandlePos] = useState({ x: 0, y: 0, angle: 0, visible: false });
