@@ -5,7 +5,7 @@
 // Node dimensions
 export const NODE_RADIUS = 40;
 export const NODE_INNER_THRESHOLD = 10;  // How far inside circle edge to start showing handles
-export const NODE_OUTER_THRESHOLD = 10;  // How far outside circle edge to keep showing handles
+export const NODE_OUTER_THRESHOLD = 5;  // How far outside circle edge to keep showing handles
 
 // Node colors
 export const NODE_COLORS = {
