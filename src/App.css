@@ -69,3 +69,19 @@ body {
   box-shadow: 0 0 0 3px #6366f1;
 }
 
+/* Node dragging cursor */
+.react-flow__node {
+  cursor: grab;
+}
+
+/* Show grabbing cursor immediately on mousedown (before drag starts) */
+.react-flow__node:active,
+.react-flow__node:active .circular-node {
+  cursor: grabbing !important;
+}
+
+.react-flow__node.dragging,
+.react-flow__node.dragging .circular-node {
+  cursor: grabbing !important;
+}
+

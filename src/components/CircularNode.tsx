@@ -5,11 +5,11 @@ import { getClosestPointOnCircle, getDistance } from '../utils/geometry';
 // The visual circle radius
 const RADIUS = 40;
 // How far inside the circle edge to start showing handles
-const INNER_THRESHOLD = 15;
+const INNER_THRESHOLD = 10;
 // How far outside the circle edge to keep showing handles
-const OUTER_THRESHOLD = 25;
+const OUTER_THRESHOLD = 10;
 
-export function CircularNode({ id, data }: NodeProps) {
+export function CircularNode({ data }: NodeProps) {
   const [handlePos, setHandlePos] = useState({ x: 0, y: 0, angle: 0, visible: false });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -23,11 +23,16 @@ export function CircularNode({ id, data }: NodeProps) {
     const centerX = containerRect.left + containerRect.width / 2;
     const centerY = containerRect.top + containerRect.height / 2;
 
-    // Calculate distance from mouse to circle center
+    // Calculate actual rendered radius (accounts for zoom)
+    const actualRadius = containerRect.width / 2;
+    const scale = actualRadius / RADIUS;
+
+    // Calculate distance from mouse to circle center (in screen pixels)
     const distance = getDistance(centerX, centerY, event.clientX, event.clientY);
     
-    // Connection zone: from inner threshold to sensor boundary (sensor handles outer limit via onMouseLeave)
-    const minDistance = RADIUS - INNER_THRESHOLD; // 25px from center - not too far inside
+    // Connection zone: scale threshold to match actual rendered size
+    const innerThresholdScaled = INNER_THRESHOLD * scale;
+    const minDistance = actualRadius - innerThresholdScaled;
     const nearEdge = distance >= minDistance;
 
     if (nearEdge) {
@@ -71,6 +76,8 @@ export function CircularNode({ id, data }: NodeProps) {
         width: RADIUS * 2,
         height: RADIUS * 2,
         position: 'relative',
+        // Cursor is 'crosshair' in edge zone, CSS handles 'grab/grabbing' for dragging
+        cursor: handlePos.visible ? 'crosshair' : undefined,
       }}
     >
       {/* The visual circle */}
@@ -89,7 +96,6 @@ export function CircularNode({ id, data }: NodeProps) {
           fontWeight: 500,
           fontSize: '14px',
           position: 'relative',
-          cursor: 'grab',
           transition: 'box-shadow 0.2s',
           zIndex: 0,
         }}
@@ -132,9 +138,10 @@ export function CircularNode({ id, data }: NodeProps) {
           top: '50%',
           transform: 'translate(-50%, -50%)',
           borderRadius: '50%',
-          pointerEvents: 'auto',
+          // Only intercept when in connection zone, otherwise let node be draggable
+          pointerEvents: handlePos.visible ? 'auto' : 'none',
           zIndex: 3,
-          cursor: handlePos.visible ? 'crosshair' : 'grab',
+          cursor: 'crosshair',
         }}
       />
       
@@ -154,9 +161,10 @@ export function CircularNode({ id, data }: NodeProps) {
           top: '50%',
           transform: 'translate(-50%, -50%)',
           borderRadius: '50%',
-          pointerEvents: 'auto',
+          // Only intercept when in connection zone, otherwise let node be draggable
+          pointerEvents: handlePos.visible ? 'auto' : 'none',
           zIndex: 2,
-          cursor: handlePos.visible ? 'crosshair' : 'grab',
+          cursor: 'crosshair',
         }}
       />
     </div>
