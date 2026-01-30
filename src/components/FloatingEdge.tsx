@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useStore, useReactFlow, type EdgeProps } from '@xyflow/react';
 import { getEdgeParams } from './utils/edgeUtils';
 import type { UpdateEdgeData } from '../App';
@@ -17,10 +17,14 @@ interface FloatingEdgeProps extends EdgeProps {
 const ARROW_SIZE = 8;
 const STROKE_WIDTH = 1.5;
 const STROKE_COLOR = '#1a1a1a';
+const HOVER_COLOR = '#3b82f6'; // Blue highlight color
+const HOVER_STROKE_WIDTH = 4;
 
 // Node radius (must match CircularNode.tsx)
 const RADIUS = 40;
 const OUTER_THRESHOLD = 10;
+
+type HoverZone = 'source' | 'target' | 'curve' | null;
 
 function FloatingEdge({ id, source, target, style, data, updateEdgeData }: FloatingEdgeProps) {
   const sourceNode = useStore(useCallback((store) => store.nodeLookup.get(source), [source]));
@@ -28,6 +32,7 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
   const { screenToFlowPosition } = useReactFlow();
   
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [hoveredZone, setHoveredZone] = useState<HoverZone>(null);
 
   if (!sourceNode || !targetNode) {
     return null;
@@ -203,6 +208,8 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
         fill="none"
         style={{ cursor: 'pointer' }}
         onMouseDown={handleMouseDown('source')}
+        onMouseEnter={() => setHoveredZone('source')}
+        onMouseLeave={() => setHoveredZone(null)}
       />
       
       {/* Curve drag zone - middle 70% of the path */}
@@ -213,6 +220,8 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
         fill="none"
         style={{ cursor: 'move' }}
         onMouseDown={handleMouseDown('curve')}
+        onMouseEnter={() => setHoveredZone('curve')}
+        onMouseLeave={() => setHoveredZone(null)}
       />
       
       {/* Target drag zone - last 15% of the path */}
@@ -223,7 +232,45 @@ function FloatingEdge({ id, source, target, style, data, updateEdgeData }: Float
         fill="none"
         style={{ cursor: 'pointer' }}
         onMouseDown={handleMouseDown('target')}
+        onMouseEnter={() => setHoveredZone('target')}
+        onMouseLeave={() => setHoveredZone(null)}
       />
+      
+      {/* Hover highlight for source zone */}
+      {hoveredZone === 'source' && (
+        <path
+          d={sourceDragPath}
+          strokeWidth={HOVER_STROKE_WIDTH}
+          stroke={HOVER_COLOR}
+          fill="none"
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none', opacity: 0.6 }}
+        />
+      )}
+      
+      {/* Hover highlight for curve zone */}
+      {hoveredZone === 'curve' && (
+        <path
+          d={curveDragPath}
+          strokeWidth={HOVER_STROKE_WIDTH}
+          stroke={HOVER_COLOR}
+          fill="none"
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none', opacity: 0.6 }}
+        />
+      )}
+      
+      {/* Hover highlight for target zone */}
+      {hoveredZone === 'target' && (
+        <path
+          d={targetDragPath}
+          strokeWidth={HOVER_STROKE_WIDTH}
+          stroke={HOVER_COLOR}
+          fill="none"
+          strokeLinecap="round"
+          style={{ pointerEvents: 'none', opacity: 0.6 }}
+        />
+      )}
       
       {/* Main edge path - no pointer events */}
       <path
