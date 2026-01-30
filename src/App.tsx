@@ -9,6 +9,7 @@ import {
   addEdge,
   MarkerType,
   BackgroundVariant,
+  ConnectionMode,
   type OnConnect,
   type Node,
   type Edge,
@@ -87,6 +88,7 @@ function App() {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        connectionMode={ConnectionMode.Loose}
         fitView
         minZoom={0.5}
         maxZoom={2}

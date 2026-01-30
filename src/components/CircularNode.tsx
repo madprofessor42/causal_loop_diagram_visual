@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { useState, useRef } from 'react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { getClosestPointOnCircle, getDistance } from '../utils/geometry';
 
 // The visual circle radius
@@ -11,24 +11,17 @@ const OUTER_THRESHOLD = 25;
 
 export function CircularNode({ id, data }: NodeProps) {
   const [handlePos, setHandlePos] = useState({ x: 0, y: 0, angle: 0, visible: false });
-  const circleRef = useRef<HTMLDivElement>(null);
-  const updateNodeInternals = useUpdateNodeInternals();
-
-  useEffect(() => {
-    if (handlePos.visible) {
-      updateNodeInternals(id);
-    }
-  }, [handlePos, id, updateNodeInternals]);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!circleRef.current) return;
+    if (!containerRef.current) return;
 
-    // Get the visual circle's bounding rect for accurate center calculation
-    const circleRect = circleRef.current.getBoundingClientRect();
+    // Get the container's bounding rect for accurate center calculation
+    const containerRect = containerRef.current.getBoundingClientRect();
     
-    // Calculate center of the visual circle
-    const centerX = circleRect.left + circleRect.width / 2;
-    const centerY = circleRect.top + circleRect.height / 2;
+    // Calculate center of the visual circle (container is node-sized, centered)
+    const centerX = containerRect.left + containerRect.width / 2;
+    const centerY = containerRect.top + containerRect.height / 2;
 
     // Calculate distance from mouse to circle center
     const distance = getDistance(centerX, centerY, event.clientX, event.clientY);
@@ -71,6 +64,9 @@ export function CircularNode({ id, data }: NodeProps) {
   return (
     // Outer container at the exact node size for React Flow positioning
     <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       style={{
         width: RADIUS * 2,
         height: RADIUS * 2,
@@ -79,7 +75,6 @@ export function CircularNode({ id, data }: NodeProps) {
     >
       {/* The visual circle */}
       <div
-        ref={circleRef}
         className="circular-node"
         style={{
           width: RADIUS * 2,
@@ -94,79 +89,74 @@ export function CircularNode({ id, data }: NodeProps) {
           fontWeight: 500,
           fontSize: '14px',
           position: 'relative',
-          cursor: 'pointer',
+          cursor: 'grab',
           transition: 'box-shadow 0.2s',
           zIndex: 0,
-          pointerEvents: 'none', // Let sensor handle events
         }}
       >
-        <div>{data?.label as string || ''}</div>
+        <div style={{ pointerEvents: 'none' }}>{data?.label as string || ''}</div>
       </div>
       
-      {/* Invisible sensor area - extends beyond the visual circle, sits on top */}
-      <div
-        className="circular-node-sensor"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        style={{
-          position: 'absolute',
-          // Center the sensor around the visual circle
-          left: -OUTER_THRESHOLD,
-          top: -OUTER_THRESHOLD,
-          width: sensorSize,
-          height: sensorSize,
-          // Crosshair cursor when handle is visible, default otherwise
-          cursor: handlePos.visible ? 'crosshair' : 'default',
-          // Transparent background needed to capture mouse events on the entire area
-          background: 'rgba(255,0,0,0.1)', // Debug: visible sensor
-          borderRadius: '50%',
-          zIndex: 1,
-        }}
-      />
+      {/* Visual indicator dot - shows where connection point will be */}
+      {handlePos.visible && (
+        <div
+          style={{
+            position: 'absolute',
+            width: '12px',
+            height: '12px',
+            background: '#22c55e',
+            border: '2px solid #16a34a',
+            borderRadius: '50%',
+            left: `calc(50% + ${handlePos.x}px)`,
+            top: `calc(50% + ${handlePos.y}px)`,
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none', // Don't interfere with handle clicks
+            zIndex: 15,
+          }}
+        />
+      )}
       
-      {/* Dynamic handle that follows the mouse around the edge */}
+      {/* Large invisible source handle - covers sensor area for starting connections */}
       <Handle
         type="source"
         position={Position.Top}
         id="dynamic-source"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
         style={{
-          background: handlePos.visible ? '#22c55e' : 'transparent',
-          border: handlePos.visible ? '2px solid #16a34a' : 'none',
-          width: '12px',
-          height: '12px',
-          left: `calc(50% + ${handlePos.x}px)`,
-          top: `calc(50% + ${handlePos.y}px)`,
+          position: 'absolute',
+          background: 'transparent',
+          border: 'none',
+          // Cover the entire sensor area
+          width: sensorSize,
+          height: sensorSize,
+          left: '50%',
+          top: '50%',
           transform: 'translate(-50%, -50%)',
-          opacity: handlePos.visible ? 1 : 0,
-          pointerEvents: handlePos.visible ? 'auto' : 'none',
-          transition: 'opacity 0.1s',
-          zIndex: 10,
-          cursor: 'crosshair',
+          borderRadius: '50%',
+          pointerEvents: 'auto',
+          zIndex: 3,
+          cursor: handlePos.visible ? 'crosshair' : 'grab',
         }}
       />
       
-      {/* Target handle - also dynamic */}
+      {/* Large invisible target handle - covers sensor area for receiving connections */}
       <Handle
         type="target"
         position={Position.Top}
         id="dynamic-target"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
         style={{
-          background: handlePos.visible ? '#3b82f6' : 'transparent',
-          border: handlePos.visible ? '2px solid #2563eb' : 'none',
-          width: '12px',
-          height: '12px',
-          left: `calc(50% + ${handlePos.x}px)`,
-          top: `calc(50% + ${handlePos.y}px)`,
+          position: 'absolute',
+          background: 'transparent',
+          border: 'none',
+          // Cover the entire sensor area
+          width: sensorSize,
+          height: sensorSize,
+          left: '50%',
+          top: '50%',
           transform: 'translate(-50%, -50%)',
-          opacity: handlePos.visible ? 1 : 0,
-          pointerEvents: handlePos.visible ? 'auto' : 'none',
-          transition: 'opacity 0.1s',
-          zIndex: 10,
-          cursor: 'crosshair',
+          borderRadius: '50%',
+          pointerEvents: 'auto',
+          zIndex: 2,
+          cursor: handlePos.visible ? 'crosshair' : 'grab',
         }}
       />
     </div>
