@@ -13,29 +13,37 @@ export function CircularNode({ data }: NodeProps) {
   const [handlePos, setHandlePos] = useState({ x: 0, y: 0, angle: 0, visible: false });
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Container size includes outer threshold for mouse detection
+  const containerSize = (RADIUS + OUTER_THRESHOLD) * 2;
+  const sensorSize = containerSize;
+
   const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
 
     // Get the container's bounding rect for accurate center calculation
     const containerRect = containerRef.current.getBoundingClientRect();
     
-    // Calculate center of the visual circle (container is node-sized, centered)
+    // Calculate center of the visual circle (container is larger, circle is centered)
     const centerX = containerRect.left + containerRect.width / 2;
     const centerY = containerRect.top + containerRect.height / 2;
 
     // Calculate actual rendered radius (accounts for zoom)
-    const actualRadius = containerRect.width / 2;
-    const scale = actualRadius / RADIUS;
+    // Container width = (RADIUS + OUTER_THRESHOLD) * 2, so actual circle radius is:
+    const actualContainerRadius = containerRect.width / 2;
+    const scale = actualContainerRadius / (RADIUS + OUTER_THRESHOLD);
+    const actualRadius = RADIUS * scale;
+    const actualOuterThreshold = OUTER_THRESHOLD * scale;
+    const actualInnerThreshold = INNER_THRESHOLD * scale;
 
     // Calculate distance from mouse to circle center (in screen pixels)
     const distance = getDistance(centerX, centerY, event.clientX, event.clientY);
     
-    // Connection zone: scale threshold to match actual rendered size
-    const innerThresholdScaled = INNER_THRESHOLD * scale;
-    const minDistance = actualRadius - innerThresholdScaled;
-    const nearEdge = distance >= minDistance;
+    // Connection zone: from (radius - innerThreshold) to (radius + outerThreshold)
+    const minDistance = actualRadius - actualInnerThreshold;
+    const maxDistance = actualRadius + actualOuterThreshold;
+    const inConnectionZone = distance >= minDistance && distance <= maxDistance;
 
-    if (nearEdge) {
+    if (inConnectionZone) {
       // Calculate the closest point on the visual circle
       // Convert mouse position to circle-relative coordinates
       const mouseRelX = event.clientX - centerX;
@@ -64,23 +72,21 @@ export function CircularNode({ data }: NodeProps) {
     setHandlePos(prev => ({ ...prev, visible: false }));
   };
 
-  const sensorSize = (RADIUS + OUTER_THRESHOLD) * 2;
-
   return (
-    // Outer container at the exact node size for React Flow positioning
+    // Outer container includes outer threshold for mouse detection
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
-        width: RADIUS * 2,
-        height: RADIUS * 2,
+        width: containerSize,
+        height: containerSize,
         position: 'relative',
         // Cursor is 'crosshair' in edge zone, CSS handles 'grab/grabbing' for dragging
         cursor: handlePos.visible ? 'crosshair' : undefined,
       }}
     >
-      {/* The visual circle */}
+      {/* The visual circle - centered within the larger container */}
       <div
         className="circular-node"
         style={{
@@ -95,7 +101,9 @@ export function CircularNode({ data }: NodeProps) {
           color: 'white',
           fontWeight: 500,
           fontSize: '14px',
-          position: 'relative',
+          position: 'absolute',
+          left: OUTER_THRESHOLD,
+          top: OUTER_THRESHOLD,
           transition: 'box-shadow 0.2s',
           zIndex: 0,
         }}
