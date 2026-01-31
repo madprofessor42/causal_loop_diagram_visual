@@ -99,6 +99,45 @@ export const diagramSlice = createSlice({
       state.edges = state.edges.filter(e => e.id !== action.payload);
     },
     
+    // Reverse edge direction (swap source and target)
+    reverseEdgeDirection: (state, action: PayloadAction<string>) => {
+      const edgeIndex = state.edges.findIndex(e => e.id === action.payload);
+      if (edgeIndex === -1) return;
+      
+      const edge = state.edges[edgeIndex];
+      
+      // Create a new edge with swapped source/target
+      const reversedData: Record<string, unknown> = { ...edge.data };
+      
+      // Swap cloud-related data if present
+      if (reversedData.sourceIsCloud !== undefined || reversedData.targetIsCloud !== undefined) {
+        const tempIsCloud = reversedData.sourceIsCloud;
+        reversedData.sourceIsCloud = reversedData.targetIsCloud;
+        reversedData.targetIsCloud = tempIsCloud;
+      }
+      
+      if (reversedData.sourcePosition !== undefined || reversedData.targetPosition !== undefined) {
+        const tempPosition = reversedData.sourcePosition;
+        reversedData.sourcePosition = reversedData.targetPosition;
+        reversedData.targetPosition = tempPosition;
+      }
+      
+      // Create new reversed edge
+      const reversedEdge: CLDEdge = {
+        ...edge,
+        source: edge.target,
+        target: edge.source,
+        // DON'T swap handles - they should stay as 'source' and 'target'
+        // because those are the fixed handle IDs on the nodes
+        sourceHandle: edge.sourceHandle || 'source',
+        targetHandle: edge.targetHandle || 'target',
+        data: reversedData as typeof edge.data,
+      };
+      
+      // Replace the edge
+      state.edges[edgeIndex] = reversedEdge;
+    },
+    
     // React Flow change adapters
     onNodesChange: (state, action: PayloadAction<NodeChange<CLDNode>[]>) => {
       state.nodes = applyNodeChanges(action.payload, state.nodes) as CLDNode[];

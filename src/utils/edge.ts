@@ -9,6 +9,7 @@ import type { StraightEdgeParams } from '../types';
 
 /**
  * Get node dimensions based on type
+ * Used as fallback when measured dimensions are not available
  */
 function getNodeDimensions(node: Node): { width: number; height: number } {
   if (node.type === 'stock') {
@@ -26,12 +27,14 @@ function getEdgePointAtAngle(
   centerX: number,
   centerY: number,
   nodeType: string | undefined,
+  width: number,
+  height: number,
   angle: number
 ): { x: number; y: number } {
   if (nodeType === 'stock') {
     // Rectangle - find intersection with edge
-    const halfWidth = STOCK_WIDTH / 2;
-    const halfHeight = STOCK_HEIGHT / 2;
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
     
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
@@ -58,8 +61,8 @@ function getEdgePointAtAngle(
     };
   } else {
     // Ellipse (Variable) - parametric ellipse equation
-    const radiusX = VARIABLE_WIDTH / 2;
-    const radiusY = VARIABLE_HEIGHT / 2;
+    const radiusX = width / 2;
+    const radiusY = height / 2;
     
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
@@ -109,8 +112,8 @@ export function getStraightEdgeParams(source: Node, target: Node): StraightEdgeP
   const targetAngle = Math.atan2(sourceY - targetY, sourceX - targetX);
 
   // Calculate edge start and end points on node edges
-  const sourcePoint = getEdgePointAtAngle(sourceX, sourceY, source.type, sourceAngle);
-  const targetPoint = getEdgePointAtAngle(targetX, targetY, target.type, targetAngle);
+  const sourcePoint = getEdgePointAtAngle(sourceX, sourceY, source.type, sourceWidth, sourceHeight, sourceAngle);
+  const targetPoint = getEdgePointAtAngle(targetX, targetY, target.type, targetWidth, targetHeight, targetAngle);
 
   return {
     sx: sourcePoint.x,

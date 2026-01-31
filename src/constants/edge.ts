@@ -36,13 +36,6 @@ export const FLOW_EDGE = {
   valveSize: 10,      // Size of valve indicator on flow
 } as const;
 
-// Delay marker (|| symbol for delayed effects)
-export const DELAY_MARKER = {
-  lineLength: 8,
-  lineGap: 3,
-  strokeWidth: 2,
-} as const;
-
 // Edge drag zones (percentage of edge length)
 export const EDGE_ZONES = {
   sourceEnd: 0.15,    // 0-15% for source angle adjustment

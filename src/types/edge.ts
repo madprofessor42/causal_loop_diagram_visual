@@ -17,8 +17,6 @@ export interface BaseEdgeData extends Record<string, unknown> {
   label?: string;
   /** Optional notes/comments */
   notes?: string;
-  /** Delay indicator (shows || on edge) */
-  delay?: boolean;
   /** Visual line style */
   lineStyle?: EdgeLineStyle;
   /** Is this edge bidirectional (has arrows on both ends) */

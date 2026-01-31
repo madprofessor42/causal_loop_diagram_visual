@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeResizer, useConnection, type NodeProps } from '@xyflow/react';
 import {
   STOCK_WIDTH,
   STOCK_HEIGHT,
@@ -19,7 +19,7 @@ const CENTER_HANDLE_BORDER = '#16a34a';
  * - Source: Small center point - must precisely hover to start connection
  * - Target: Entire node area - active only when dragging a connection
  */
-export function StockNode({ data }: NodeProps) {
+export function StockNode({ data, selected }: NodeProps) {
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
   
   // Check if there's a connection being drawn
@@ -31,17 +31,29 @@ export function StockNode({ data }: NodeProps) {
   return (
     <div
       style={{
-        width: STOCK_WIDTH,
-        height: STOCK_HEIGHT,
+        width: '100%',
+        height: '100%',
         position: 'relative',
       }}
     >
+      {/* Resize handles - only visible when node is selected */}
+      <NodeResizer
+        isVisible={selected}
+        minWidth={80}
+        minHeight={50}
+        handleStyle={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+        }}
+      />
+      
       {/* The visual rectangle */}
       <div
         className="stock-node"
         style={{
-          width: STOCK_WIDTH,
-          height: STOCK_HEIGHT,
+          width: '100%',
+          height: '100%',
           background: STOCK_COLORS.background,
           border: `2px solid ${STOCK_COLORS.border}`,
           borderRadius: 4,
@@ -55,12 +67,6 @@ export function StockNode({ data }: NodeProps) {
         }}
       >
         <div style={{ pointerEvents: 'none' }}>{nodeData?.label || 'Stock'}</div>
-        {nodeData?.initialValue !== undefined && (
-          <div style={{ fontSize: '11px', opacity: 0.8, pointerEvents: 'none' }}>
-            {nodeData.initialValue}
-            {nodeData.units ? ` ${nodeData.units}` : ''}
-          </div>
-        )}
       </div>
 
       {/* Center handle indicator - always visible for Stock, highlights on hover */}
@@ -109,8 +115,8 @@ export function StockNode({ data }: NodeProps) {
         id="target"
         style={{
           position: 'absolute',
-          width: STOCK_WIDTH,
-          height: STOCK_HEIGHT,
+          width: '100%',
+          height: '100%',
           background: 'transparent',
           border: 'none',
           left: '50%',

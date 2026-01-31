@@ -65,9 +65,17 @@ body {
   pointer-events: none;
 }
 
-/* Node selection styling */
+/* Node selection styling - minimalist approach */
+.react-flow__node.selected .stock-node {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.react-flow__node.selected .variable-node {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
 .react-flow__node.selected .circular-node {
-  box-shadow: 0 0 0 3px #6366f1;
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 /* Node dragging cursor */
@@ -114,5 +122,25 @@ body {
   50% {
     opacity: 0.6;
   }
+}
+
+/* Node resizer styling */
+.react-flow__resize-control.handle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.react-flow__resize-control.handle:hover {
+  background-color: #2563eb;
+  transform: scale(1.2);
+}
+
+/* Hide the connecting lines between resize handles */
+.react-flow__resize-control.line {
+  border-color: transparent !important;
 }
 

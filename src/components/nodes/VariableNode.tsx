@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react';
+import { Handle, Position, NodeResizer, useConnection, type NodeProps } from '@xyflow/react';
 import { useSelector } from 'react-redux';
 import {
   VARIABLE_WIDTH,
@@ -21,7 +21,7 @@ const CENTER_HANDLE_BORDER = '#16a34a';
  * - Source: Small center point - must precisely hover to start connection
  * - Target: Entire node area - active only when dragging a connection
  */
-export function VariableNode({ data }: NodeProps) {
+export function VariableNode({ data, selected }: NodeProps) {
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
   
   // Check if there's a connection being drawn
@@ -37,17 +37,29 @@ export function VariableNode({ data }: NodeProps) {
   return (
     <div
       style={{
-        width: VARIABLE_WIDTH,
-        height: VARIABLE_HEIGHT,
+        width: '100%',
+        height: '100%',
         position: 'relative',
       }}
     >
+      {/* Resize handles - only visible when node is selected */}
+      <NodeResizer
+        isVisible={selected}
+        minWidth={80}
+        minHeight={50}
+        handleStyle={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+        }}
+      />
+      
       {/* The visual oval */}
       <div
         className="variable-node"
         style={{
-          width: VARIABLE_WIDTH,
-          height: VARIABLE_HEIGHT,
+          width: '100%',
+          height: '100%',
           background: VARIABLE_COLORS.background,
           border: `2px solid ${VARIABLE_COLORS.border}`,
           borderRadius: '50%',
@@ -61,11 +73,6 @@ export function VariableNode({ data }: NodeProps) {
         }}
       >
         <div style={{ pointerEvents: 'none' }}>{nodeData?.label || 'Variable'}</div>
-        {nodeData?.value !== undefined && (
-          <div style={{ fontSize: '11px', opacity: 0.8, pointerEvents: 'none' }}>
-            {nodeData.value}
-          </div>
-        )}
       </div>
 
       {/* Center handle indicator - visible only in link mode, highlights on hover */}
@@ -121,8 +128,8 @@ export function VariableNode({ data }: NodeProps) {
           id="target"
           style={{
             position: 'absolute',
-            width: VARIABLE_WIDTH,
-            height: VARIABLE_HEIGHT,
+            width: '100%',
+            height: '100%',
             background: 'transparent',
             border: 'none',
             left: '50%',

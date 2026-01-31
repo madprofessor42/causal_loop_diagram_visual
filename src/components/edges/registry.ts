@@ -22,7 +22,6 @@ export const edgeMetadata: Record<EdgeVariant, EdgeMetadata> = {
   link: {
     type: 'link',
     defaultData: (): LinkEdgeData => ({
-      delay: false,
       lineStyle: 'dashed',
     }),
     displayName: 'Link',
@@ -31,7 +30,6 @@ export const edgeMetadata: Record<EdgeVariant, EdgeMetadata> = {
   flow: {
     type: 'flow',
     defaultData: (): FlowEdgeData => ({
-      delay: false,
       lineStyle: 'solid',
       rate: '0',
     }),

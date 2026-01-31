@@ -7,12 +7,14 @@ import {
   ReactFlowProvider,
   BackgroundVariant,
   ConnectionMode,
+  ConnectionLineType,
   useReactFlow,
   type OnConnect,
   type OnConnectStart,
   type Connection,
   type NodeChange,
   type EdgeChange,
+  type Edge,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -40,6 +42,8 @@ import {
   selectIsDragging,
   selectGhostPosition,
   selectConnectionMode,
+  selectSelectedEdgeId,
+  selectSelectedNodeId,
 } from './store/slices/uiSlice';
 
 // Context to pass edge update function to edge components
@@ -51,18 +55,21 @@ const initialNodes: CLDNode[] = [
     type: 'stock',
     position: { x: 250, y: 100 },
     data: { label: 'Population', initialValue: 1000 },
+    style: { width: STOCK_WIDTH, height: STOCK_HEIGHT },
   },
   {
     id: '2',
     type: 'variable',
     position: { x: 450, y: 250 },
     data: { label: 'Growth Rate', value: '0.02' },
+    style: { width: VARIABLE_WIDTH, height: VARIABLE_HEIGHT },
   },
   {
     id: '3',
     type: 'variable',
     position: { x: 150, y: 300 },
     data: { label: 'Birth Rate', value: '[Population] * [Growth Rate]' },
+    style: { width: VARIABLE_WIDTH, height: VARIABLE_HEIGHT },
   },
 ];
 
@@ -104,6 +111,8 @@ function Flow() {
   const isDragging = useAppSelector(selectIsDragging);
   const ghostPosition = useAppSelector(selectGhostPosition);
   const connectionMode = useAppSelector(selectConnectionMode);
+  const selectedEdgeId = useAppSelector(selectSelectedEdgeId);
+  const selectedNodeId = useAppSelector(selectSelectedNodeId);
   
   const { screenToFlowPosition } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -316,6 +325,9 @@ function Flow() {
         data: type === 'stock'
           ? { label, initialValue: 0 }
           : { label, value: '0' },
+        style: type === 'stock'
+          ? { width: STOCK_WIDTH, height: STOCK_HEIGHT }
+          : { width: VARIABLE_WIDTH, height: VARIABLE_HEIGHT },
       };
       
       dispatch(diagramActions.addNode(newNode));
@@ -327,6 +339,35 @@ function Flow() {
   // Toggle connection mode handler
   const handleToggleConnectionMode = useCallback(() => {
     dispatch(uiActions.toggleConnectionMode());
+  }, [dispatch]);
+  
+  // Connection line style based on mode
+  const connectionLineStyle = useMemo(() => ({
+    stroke: connectionMode === 'link' ? '#666666' : '#5b9bd5',
+    strokeWidth: connectionMode === 'link' ? 1.5 : 3,
+    strokeDasharray: connectionMode === 'link' ? '5,5' : undefined,
+  }), [connectionMode]);
+  
+  // Handle edge click - select edge for editing in sidebar
+  const onEdgeClick = useCallback(
+    (_event: React.MouseEvent, edge: Edge) => {
+      dispatch(uiActions.setSelectedEdge(edge.id));
+    },
+    [dispatch]
+  );
+  
+  // Handle node click - select node for editing in sidebar
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: CLDNode) => {
+      dispatch(uiActions.setSelectedNode(node.id));
+    },
+    [dispatch]
+  );
+  
+  // Handle pane click - deselect edge and node
+  const onPaneClick = useCallback(() => {
+    dispatch(uiActions.setSelectedEdge(null));
+    dispatch(uiActions.setSelectedNode(null));
   }, [dispatch]);
 
   return (
@@ -369,19 +410,30 @@ function Flow() {
         </div>
         
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
+          nodes={nodes.map(n => ({
+            ...n,
+            selected: n.id === selectedNodeId,
+          }))}
+          edges={edges.map(e => ({
+            ...e,
+            selected: e.id === selectedEdgeId,
+          }))}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnectStart={onConnectStart}
           onConnect={onConnect}
           onConnectEnd={onConnectEnd}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onPaneClick={onPaneClick}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypesWithUpdate}
           connectionMode={ConnectionMode.Loose}
+          connectionLineType={ConnectionLineType.Straight}
+          connectionLineStyle={connectionLineStyle}
           fitView
           minZoom={0.5}
           maxZoom={2}

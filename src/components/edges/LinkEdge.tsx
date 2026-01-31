@@ -136,18 +136,32 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
       
       {/* Label if present */}
       {label && (
-        <text
-          x={midX}
-          y={midY - 10}
-          textAnchor="middle"
-          style={{
-            fontSize: '12px',
-            fill: selected ? '#3b82f6' : LINK_EDGE.color,
-            pointerEvents: 'none',
-          }}
-        >
-          {label}
-        </text>
+        <>
+          {/* White background for label text */}
+          <rect
+            x={midX - (label.length * 3.5 + 6)}
+            y={midY - 20}
+            width={label.length * 7 + 12}
+            height={18}
+            fill="white"
+            stroke="white"
+            strokeWidth={2}
+            rx={3}
+            style={{ pointerEvents: 'none' }}
+          />
+          <text
+            x={midX}
+            y={midY - 10}
+            textAnchor="middle"
+            style={{
+              fontSize: '12px',
+              fill: selected ? '#3b82f6' : LINK_EDGE.color,
+              pointerEvents: 'none',
+            }}
+          >
+            {label}
+          </text>
+        </>
       )}
     </g>
   );

@@ -18,6 +18,12 @@ interface UIState {
   drag: DragState;
   /** Current connection mode - determines what type of edge is created */
   connectionMode: EdgeVariant;
+  /** Currently selected edge ID for editing in sidebar */
+  selectedEdgeId: string | null;
+  /** Currently selected node ID for editing in sidebar */
+  selectedNodeId: string | null;
+  /** Sidebar width in pixels */
+  sidebarWidth: number;
 }
 
 const initialState: UIState = {
@@ -31,6 +37,9 @@ const initialState: UIState = {
     ghostPosition: null,
   },
   connectionMode: 'link',
+  selectedEdgeId: null,
+  selectedNodeId: null,
+  sidebarWidth: 280, // Default width in pixels
 };
 
 export const uiSlice = createSlice({
@@ -70,6 +79,33 @@ export const uiSlice = createSlice({
     toggleConnectionMode: (state) => {
       state.connectionMode = state.connectionMode === 'link' ? 'flow' : 'link';
     },
+    // Edge selection for sidebar editing
+    setSelectedEdge: (state, action: PayloadAction<string | null>) => {
+      state.selectedEdgeId = action.payload;
+      // Clear node selection when edge is selected
+      if (action.payload) {
+        state.selectedNodeId = null;
+      }
+    },
+    clearSelectedEdge: (state) => {
+      state.selectedEdgeId = null;
+    },
+    // Node selection for sidebar editing
+    setSelectedNode: (state, action: PayloadAction<string | null>) => {
+      state.selectedNodeId = action.payload;
+      // Clear edge selection when node is selected
+      if (action.payload) {
+        state.selectedEdgeId = null;
+      }
+    },
+    clearSelectedNode: (state) => {
+      state.selectedNodeId = null;
+    },
+    // Sidebar resize
+    setSidebarWidth: (state, action: PayloadAction<number>) => {
+      // Clamp width between 200 and 600 pixels
+      state.sidebarWidth = Math.max(200, Math.min(600, action.payload));
+    },
   },
 });
 
@@ -86,3 +122,6 @@ export const selectIsDragging = (state: { ui: UIState }) => state.ui.drag.isDrag
 export const selectGhostPosition = (state: { ui: UIState }) => state.ui.drag.ghostPosition;
 export const selectDragNodeType = (state: { ui: UIState }) => state.ui.drag.nodeType;
 export const selectConnectionMode = (state: { ui: UIState }) => state.ui.connectionMode;
+export const selectSelectedEdgeId = (state: { ui: UIState }) => state.ui.selectedEdgeId;
+export const selectSelectedNodeId = (state: { ui: UIState }) => state.ui.selectedNodeId;
+export const selectSidebarWidth = (state: { ui: UIState }) => state.ui.sidebarWidth;
