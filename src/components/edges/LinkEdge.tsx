@@ -91,9 +91,9 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
   const midX = (startX + endX) / 2;
   const midY = (startY + endY) / 2;
 
-  // Determine edge color based on state
-  const edgeColor = isHighlighted ? '#22c55e' : (selected ? '#3b82f6' : LINK_EDGE.color);
-  const edgeWidth = isHighlighted ? LINK_EDGE.strokeWidth + 1 : LINK_EDGE.strokeWidth;
+  // Determine highlight/selection state
+  const highlightColor = isHighlighted ? '#22c55e' : (selected ? '#3b82f6' : null);
+  const outlineWidth = LINK_EDGE.strokeWidth + 6; // Thicker for outline effect
 
   return (
     <g className="react-flow__edge">
@@ -106,13 +106,62 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
         style={{ cursor: 'pointer' }}
       />
       
-      {/* Main edge path - dashed line for Link */}
+      {/* Outline layer - drawn first (underneath) when highlighted or selected */}
+      {highlightColor && (
+        <>
+          {/* Outline for main edge path */}
+          <path
+            d={edgePath}
+            strokeWidth={outlineWidth}
+            stroke={highlightColor}
+            fill="none"
+            strokeDasharray={LINK_EDGE.dashArray}
+            strokeLinecap="round"
+            style={{ 
+              pointerEvents: 'none',
+              opacity: 0.6,
+            }}
+          />
+          
+          {/* Outline for arrow at target */}
+          <path
+            d={`M ${targetArrowX1},${targetArrowY1} L ${endX},${endY} L ${targetArrowX2},${targetArrowY2}`}
+            strokeWidth={outlineWidth}
+            stroke={highlightColor}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ 
+              pointerEvents: 'none',
+              opacity: 0.6,
+            }}
+          />
+          
+          {/* Outline for arrow at source - only for bidirectional */}
+          {isBidirectional && (
+            <path
+              d={`M ${sourceArrowX1},${sourceArrowY1} L ${startX},${startY} L ${sourceArrowX2},${sourceArrowY2}`}
+              strokeWidth={outlineWidth}
+              stroke={highlightColor}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ 
+                pointerEvents: 'none',
+                opacity: 0.6,
+              }}
+            />
+          )}
+        </>
+      )}
+      
+      {/* Main edge path - dashed line for Link (always in original color) */}
       <path
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        strokeWidth={edgeWidth}
-        stroke={edgeColor}
+        strokeWidth={LINK_EDGE.strokeWidth}
+        stroke={LINK_EDGE.color}
         fill="none"
         strokeDasharray={LINK_EDGE.dashArray}
         strokeLinecap="round"
@@ -122,11 +171,11 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
         }}
       />
       
-      {/* Arrow at target */}
+      {/* Arrow at target (always in original color) */}
       <path
         d={`M ${targetArrowX1},${targetArrowY1} L ${endX},${endY} L ${targetArrowX2},${targetArrowY2}`}
-        strokeWidth={edgeWidth}
-        stroke={edgeColor}
+        strokeWidth={LINK_EDGE.strokeWidth}
+        stroke={LINK_EDGE.color}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -135,18 +184,17 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
         }}
       />
       
-      {/* Arrow at source - only for bidirectional */}
+      {/* Arrow at source - only for bidirectional (always in original color) */}
       {isBidirectional && (
         <path
           d={`M ${sourceArrowX1},${sourceArrowY1} L ${startX},${startY} L ${sourceArrowX2},${sourceArrowY2}`}
-          strokeWidth={edgeWidth}
-          stroke={edgeColor}
+          strokeWidth={LINK_EDGE.strokeWidth}
+          stroke={LINK_EDGE.color}
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
           style={{ 
             pointerEvents: 'none',
-            transition: 'all 0.2s ease',
           }}
         />
       )}
@@ -172,7 +220,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
             textAnchor="middle"
             style={{
               fontSize: '12px',
-              fill: edgeColor,
+              fill: LINK_EDGE.color,
               pointerEvents: 'none',
             }}
           >

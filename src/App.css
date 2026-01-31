@@ -12,6 +12,13 @@ body {
   box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
 }
 
+/* Disable transitions on edges for instant updates during node resize */
+.react-flow__edge path,
+.react-flow__edge line,
+.react-flow__edge-path {
+  transition: none !important;
+}
+
 .react-flow__edge-path {
   stroke: #1a1a1a;
   stroke-width: 1.5;
@@ -63,19 +70,6 @@ body {
 
 .react-flow__connection {
   pointer-events: none;
-}
-
-/* Node selection styling - minimalist approach */
-.react-flow__node.selected .stock-node {
-  box-shadow: 0 0 0 2px #3b82f6;
-}
-
-.react-flow__node.selected .variable-node {
-  box-shadow: 0 0 0 2px #3b82f6;
-}
-
-.react-flow__node.selected .circular-node {
-  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 /* Node dragging cursor */

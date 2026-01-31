@@ -277,9 +277,9 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   // Label
   const label = edgeData?.label;
   
-  // Colors based on selection and highlight state
-  const strokeColor = isHighlighted ? '#22c55e' : (selected ? '#3b82f6' : FLOW_EDGE.color);
-  const strokeWidth = isHighlighted ? FLOW_EDGE.strokeWidth + 1 : FLOW_EDGE.strokeWidth;
+  // Determine highlight/selection state
+  const highlightColor = isHighlighted ? '#22c55e' : (selected ? '#3b82f6' : null);
+  const outlineWidth = FLOW_EDGE.strokeWidth + 6; // Thicker for outline effect
 
   return (
     <g className="react-flow__edge">
@@ -292,13 +292,76 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         style={{ cursor: 'pointer' }}
       />
       
-      {/* Main edge path - thick solid line for Flow */}
+      {/* Outline layer - drawn first (underneath) when highlighted or selected */}
+      {highlightColor && (
+        <>
+          {/* Outline for main edge path */}
+          <path
+            d={edgePath}
+            strokeWidth={outlineWidth}
+            stroke={highlightColor}
+            fill="none"
+            strokeLinecap="round"
+            style={{ 
+              pointerEvents: 'none',
+              opacity: 0.6,
+            }}
+          />
+          
+          {/* Outline for valve indicator */}
+          <line
+            x1={valve1X}
+            y1={valve1Y}
+            x2={valve2X}
+            y2={valve2Y}
+            strokeWidth={outlineWidth}
+            stroke={highlightColor}
+            strokeLinecap="round"
+            style={{ 
+              pointerEvents: 'none',
+              opacity: 0.6,
+            }}
+          />
+          
+          {/* Outline for arrowhead at target */}
+          <path
+            d={`M ${targetArrowX1},${targetArrowY1} L ${arrowTx},${arrowTy} L ${targetArrowX2},${targetArrowY2} Z`}
+            strokeWidth={3}
+            stroke={highlightColor}
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ 
+              pointerEvents: 'none',
+              opacity: 0.6,
+            }}
+          />
+          
+          {/* Outline for arrowhead at source - only for bidirectional */}
+          {isBidirectional && (
+            <path
+              d={`M ${sourceArrowX1},${sourceArrowY1} L ${arrowSx},${arrowSy} L ${sourceArrowX2},${sourceArrowY2} Z`}
+              strokeWidth={3}
+              stroke={highlightColor}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ 
+                pointerEvents: 'none',
+                opacity: 0.6,
+              }}
+            />
+          )}
+        </>
+      )}
+      
+      {/* Main edge path - thick solid line for Flow (always in original color) */}
       <path
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        strokeWidth={strokeWidth}
-        stroke={strokeColor}
+        strokeWidth={FLOW_EDGE.strokeWidth}
+        stroke={FLOW_EDGE.color}
         fill="none"
         strokeLinecap="round"
         style={{ 
@@ -307,26 +370,26 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         }}
       />
       
-      {/* Valve indicator at midpoint */}
+      {/* Valve indicator at midpoint (always in original color) */}
       <line
         x1={valve1X}
         y1={valve1Y}
         x2={valve2X}
         y2={valve2Y}
-        strokeWidth={strokeWidth}
-        stroke={strokeColor}
+        strokeWidth={FLOW_EDGE.strokeWidth}
+        stroke={FLOW_EDGE.color}
         strokeLinecap="round"
         style={{ 
           pointerEvents: 'none',
         }}
       />
       
-      {/* Filled arrowhead at target */}
+      {/* Filled arrowhead at target (always in original color) */}
       <path
         d={`M ${targetArrowX1},${targetArrowY1} L ${arrowTx},${arrowTy} L ${targetArrowX2},${targetArrowY2} Z`}
         strokeWidth={1}
-        stroke={strokeColor}
-        fill={strokeColor}
+        stroke={FLOW_EDGE.color}
+        fill={FLOW_EDGE.color}
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{ 
@@ -334,13 +397,13 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         }}
       />
       
-      {/* Filled arrowhead at source - only for bidirectional */}
+      {/* Filled arrowhead at source - only for bidirectional (always in original color) */}
       {isBidirectional && (
         <path
           d={`M ${sourceArrowX1},${sourceArrowY1} L ${arrowSx},${arrowSy} L ${sourceArrowX2},${sourceArrowY2} Z`}
           strokeWidth={1}
-          stroke={strokeColor}
-          fill={strokeColor}
+          stroke={FLOW_EDGE.color}
+          fill={FLOW_EDGE.color}
           strokeLinecap="round"
           strokeLinejoin="round"
           style={{ 
@@ -422,7 +485,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
             textAnchor="middle"
             style={{
               fontSize: '12px',
-              fill: strokeColor,
+              fill: FLOW_EDGE.color,
               pointerEvents: 'none',
             }}
           >

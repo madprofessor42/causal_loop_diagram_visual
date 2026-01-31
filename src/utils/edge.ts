@@ -19,9 +19,14 @@ function getNodeDimensions(node: Node): { width: number; height: number } {
   return { width: VARIABLE_WIDTH, height: VARIABLE_HEIGHT };
 }
 
+// Border offset to prevent arrows from going inside the node border
+// Accounts for 2-3px border + small visual gap
+const BORDER_OFFSET = 3;
+
 /**
  * Calculate point on node edge at given angle
  * Handles rectangles (Stock) and ellipses (Variable)
+ * Point is calculated slightly outside the actual edge to account for border
  */
 function getEdgePointAtAngle(
   centerX: number,
@@ -55,25 +60,45 @@ function getEdgePointAtAngle(
       x = y * (cos / sin);
     }
     
+    // Add small offset to move point outside the border
+    const distance = Math.sqrt(x * x + y * y);
+    const offsetX = (x / distance) * BORDER_OFFSET;
+    const offsetY = (y / distance) * BORDER_OFFSET;
+    
     return {
-      x: centerX + x,
-      y: centerY + y,
+      x: centerX + x + offsetX,
+      y: centerY + y + offsetY,
     };
   } else {
-    // Ellipse (Variable) - parametric ellipse equation
+    // Ellipse (Variable) - find intersection of ray with ellipse
     const radiusX = width / 2;
     const radiusY = height / 2;
     
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
     
+    // Ray from center: (t*cos(angle), t*sin(angle))
+    // Ellipse equation: (x/radiusX)² + (y/radiusY)² = 1
+    // Solve for t where ray intersects ellipse:
+    // t = 1 / sqrt((cos²/radiusX²) + (sin²/radiusY²))
+    const denominator = Math.sqrt(
+      (cos * cos) / (radiusX * radiusX) + 
+      (sin * sin) / (radiusY * radiusY)
+    );
+    const t = 1 / denominator;
+    
     // Point on ellipse edge
-    const x = radiusX * cos;
-    const y = radiusY * sin;
+    const x = t * cos;
+    const y = t * sin;
+    
+    // Add small offset to move point outside the border
+    // For ellipse, just extend along the same ray
+    const offsetX = cos * BORDER_OFFSET;
+    const offsetY = sin * BORDER_OFFSET;
     
     return {
-      x: centerX + x,
-      y: centerY + y,
+      x: centerX + x + offsetX,
+      y: centerY + y + offsetY,
     };
   }
 }
