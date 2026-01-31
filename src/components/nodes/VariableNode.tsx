@@ -76,72 +76,69 @@ export function VariableNode({ data, selected }: NodeProps) {
       </div>
 
       {/* Center handle indicator - visible only in link mode, highlights on hover */}
-      {showCenterHandle && (
-        <div
-          style={{
-            position: 'absolute',
-            width: CENTER_HANDLE_SIZE,
-            height: CENTER_HANDLE_SIZE,
-            background: isHoveringHandle ? CENTER_HANDLE_COLOR : 'rgba(34, 197, 94, 0.4)',
-            border: `2px solid ${isHoveringHandle ? CENTER_HANDLE_BORDER : 'rgba(22, 163, 74, 0.6)'}`,
-            borderRadius: '50%',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            pointerEvents: 'none',
-            zIndex: 15,
-            transition: 'all 0.15s ease',
-          }}
-        />
-      )}
+      <div
+        style={{
+          position: 'absolute',
+          width: CENTER_HANDLE_SIZE,
+          height: CENTER_HANDLE_SIZE,
+          background: isHoveringHandle ? CENTER_HANDLE_COLOR : 'rgba(34, 197, 94, 0.4)',
+          border: `2px solid ${isHoveringHandle ? CENTER_HANDLE_BORDER : 'rgba(22, 163, 74, 0.6)'}`,
+          borderRadius: '50%',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          zIndex: 15,
+          transition: 'all 0.15s ease',
+          opacity: showCenterHandle ? 1 : 0,
+        }}
+      />
 
       {/* Source handle - exactly at center, small size for starting connections */}
-      {/* Only available in link mode - flow connections cannot start from Variable */}
-      {showCenterHandle && (
-        <Handle
-          type="source"
-          position={Position.Top}
-          id="source"
-          onMouseEnter={() => setIsHoveringHandle(true)}
-          onMouseLeave={() => setIsHoveringHandle(false)}
-          style={{
-            position: 'absolute',
-            width: CENTER_HANDLE_SIZE,
-            height: CENTER_HANDLE_SIZE,
-            background: 'transparent',
-            border: 'none',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            cursor: 'crosshair',
-            zIndex: 20,
-          }}
-        />
-      )}
+      {/* Always in DOM for existing edges, but only interactive in link mode */}
+      <Handle
+        type="source"
+        position={Position.Top}
+        id="source"
+        onMouseEnter={() => setIsHoveringHandle(true)}
+        onMouseLeave={() => setIsHoveringHandle(false)}
+        style={{
+          position: 'absolute',
+          width: CENTER_HANDLE_SIZE,
+          height: CENTER_HANDLE_SIZE,
+          background: 'transparent',
+          border: 'none',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          cursor: showCenterHandle ? 'crosshair' : 'default',
+          zIndex: 20,
+          // Disable pointer events when not in link mode
+          pointerEvents: showCenterHandle ? 'auto' : 'none',
+        }}
+      />
 
       {/* Target handle - covers entire node, only active when connection is being drawn */}
-      {/* Only available in link mode - flow connections cannot end at Variable */}
-      {showCenterHandle && (
-        <Handle
-          type="target"
-          position={Position.Top}
-          id="target"
-          style={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            background: 'transparent',
-            border: 'none',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            borderRadius: '50%',
-            zIndex: 10,
-            // Only enable pointer events when actively connecting
-            pointerEvents: isConnecting ? 'auto' : 'none',
-          }}
-        />
-      )}
+      {/* Always in DOM for existing edges, but only interactive when connecting in link mode */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="target"
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          background: 'transparent',
+          border: 'none',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          borderRadius: '50%',
+          zIndex: 10,
+          // Only enable pointer events when actively connecting in link mode
+          pointerEvents: (isConnecting && showCenterHandle) ? 'auto' : 'none',
+        }}
+      />
     </div>
   );
 }

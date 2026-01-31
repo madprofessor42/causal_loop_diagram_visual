@@ -370,6 +370,24 @@ function Flow() {
     dispatch(uiActions.setSelectedNode(null));
   }, [dispatch]);
 
+  // Memoize nodes with selection to avoid creating new objects on every render
+  const nodesWithSelection = useMemo(
+    () => nodes.map(n => ({
+      ...n,
+      selected: n.id === selectedNodeId,
+    })),
+    [nodes, selectedNodeId]
+  );
+
+  // Memoize edges with selection to avoid creating new objects on every render
+  const edgesWithSelection = useMemo(
+    () => edges.map(e => ({
+      ...e,
+      selected: e.id === selectedEdgeId,
+    })),
+    [edges, selectedEdgeId]
+  );
+
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
       <Sidebar />
@@ -410,14 +428,8 @@ function Flow() {
         </div>
         
         <ReactFlow
-          nodes={nodes.map(n => ({
-            ...n,
-            selected: n.id === selectedNodeId,
-          }))}
-          edges={edges.map(e => ({
-            ...e,
-            selected: e.id === selectedEdgeId,
-          }))}
+          nodes={nodesWithSelection}
+          edges={edgesWithSelection}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnectStart={onConnectStart}

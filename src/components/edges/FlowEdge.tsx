@@ -1,4 +1,4 @@
-import { useCallback, useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStore, useReactFlow, type EdgeProps } from '@xyflow/react';
 import { getStraightEdgeParams } from '../../utils/edge';
 import type { FlowEdgeData, CLDEdge } from '../../types';
@@ -41,8 +41,8 @@ const CLOUD_HITBOX_SIZE = 40;
  * Clouds are draggable to reposition
  */
 function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }: FlowEdgeProps) {
-  const sourceNode = useStore(useCallback((store) => store.nodeLookup.get(source), [source]));
-  const targetNode = useStore(useCallback((store) => store.nodeLookup.get(target), [target]));
+  const sourceNode = useStore((store) => store.nodeLookup.get(source));
+  const targetNode = useStore((store) => store.nodeLookup.get(target));
   const { screenToFlowPosition } = useReactFlow();
   
   // Dragging state
@@ -50,14 +50,15 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   
   // Check if there's a link edge between same nodes
-  const hasParallelLink = useStore(useCallback((store) => {
+  const hasParallelLink = useStore((store) => {
     const edges = Array.from(store.edges.values()) as CLDEdge[];
     return edges.some(e => 
       e.type === 'link' && 
       ((e.source === source && e.target === target) || 
        (e.source === target && e.target === source))
     );
-  }, [source, target]));
+  });
+
 
   const edgeData = data as FlowEdgeData | undefined;
   const isBidirectional = edgeData?.bidirectional ?? false;

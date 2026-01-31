@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { useStore, type EdgeProps } from '@xyflow/react';
 import { getStraightEdgeParams } from '../../utils/edge';
 import type { LinkEdgeData, CLDEdge } from '../../types';
@@ -24,18 +23,18 @@ const HITBOX_WIDTH = 20;
  * Supports bidirectional arrows when data.bidirectional is true
  */
 function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) {
-  const sourceNode = useStore(useCallback((store) => store.nodeLookup.get(source), [source]));
-  const targetNode = useStore(useCallback((store) => store.nodeLookup.get(target), [target]));
+  const sourceNode = useStore((store) => store.nodeLookup.get(source));
+  const targetNode = useStore((store) => store.nodeLookup.get(target));
   
   // Check if there's a flow edge between same nodes
-  const hasParallelFlow = useStore(useCallback((store) => {
+  const hasParallelFlow = useStore((store) => {
     const edges = Array.from(store.edges.values()) as CLDEdge[];
     return edges.some(e => 
       e.type === 'flow' && 
       ((e.source === source && e.target === target) || 
        (e.source === target && e.target === source))
     );
-  }, [source, target]));
+  });
 
   if (!sourceNode || !targetNode) {
     return null;
