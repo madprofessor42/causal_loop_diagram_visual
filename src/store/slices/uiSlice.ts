@@ -24,6 +24,11 @@ interface UIState {
   selectedNodeId: string | null;
   /** Sidebar width in pixels */
   sidebarWidth: number;
+  /** Highlighted nodes and edges when hovering over a loop in sidebar */
+  highlightedLoop: {
+    nodeIds: string[];
+    edgeIds: string[];
+  } | null;
 }
 
 const initialState: UIState = {
@@ -40,6 +45,7 @@ const initialState: UIState = {
   selectedEdgeId: null,
   selectedNodeId: null,
   sidebarWidth: 280, // Default width in pixels
+  highlightedLoop: null,
 };
 
 export const uiSlice = createSlice({
@@ -106,6 +112,13 @@ export const uiSlice = createSlice({
       // Clamp width between 200 and 600 pixels
       state.sidebarWidth = Math.max(200, Math.min(600, action.payload));
     },
+    // Loop highlighting
+    setHighlightedLoop: (state, action: PayloadAction<{ nodeIds: string[]; edgeIds: string[] } | null>) => {
+      state.highlightedLoop = action.payload;
+    },
+    clearHighlightedLoop: (state) => {
+      state.highlightedLoop = null;
+    },
   },
 });
 
@@ -125,3 +138,4 @@ export const selectConnectionMode = (state: { ui: UIState }) => state.ui.connect
 export const selectSelectedEdgeId = (state: { ui: UIState }) => state.ui.selectedEdgeId;
 export const selectSelectedNodeId = (state: { ui: UIState }) => state.ui.selectedNodeId;
 export const selectSidebarWidth = (state: { ui: UIState }) => state.ui.sidebarWidth;
+export const selectHighlightedLoop = (state: { ui: UIState }) => state.ui.highlightedLoop;

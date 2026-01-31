@@ -7,7 +7,7 @@ import {
   VARIABLE_COLORS,
 } from '../../constants';
 import type { VariableNodeData } from '../../types';
-import { selectConnectionMode } from '../../store/slices/uiSlice';
+import { selectConnectionMode, selectHighlightedLoop } from '../../store/slices/uiSlice';
 
 // Center handle size - small circle that must be precisely targeted
 const CENTER_HANDLE_SIZE = 14;
@@ -21,7 +21,7 @@ const CENTER_HANDLE_BORDER = '#16a34a';
  * - Source: Small center point - must precisely hover to start connection
  * - Target: Entire node area - active only when dragging a connection
  */
-export function VariableNode({ data, selected }: NodeProps) {
+export function VariableNode({ data, selected, id }: NodeProps) {
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
   
   // Check if there's a connection being drawn
@@ -31,6 +31,10 @@ export function VariableNode({ data, selected }: NodeProps) {
   // Get current connection mode
   const connectionMode = useSelector(selectConnectionMode);
   const showCenterHandle = connectionMode === 'link';
+
+  // Check if this node is highlighted as part of a loop
+  const highlightedLoop = useSelector(selectHighlightedLoop);
+  const isHighlighted = highlightedLoop?.nodeIds.includes(id);
 
   const nodeData = data as VariableNodeData;
 
@@ -61,7 +65,9 @@ export function VariableNode({ data, selected }: NodeProps) {
           width: '100%',
           height: '100%',
           background: VARIABLE_COLORS.background,
-          border: `2px solid ${VARIABLE_COLORS.border}`,
+          border: isHighlighted 
+            ? '3px solid #22c55e' 
+            : `2px solid ${VARIABLE_COLORS.border}`,
           borderRadius: '50%',
           display: 'flex',
           flexDirection: 'column',
@@ -70,6 +76,9 @@ export function VariableNode({ data, selected }: NodeProps) {
           color: VARIABLE_COLORS.text,
           fontWeight: 500,
           fontSize: '14px',
+          boxShadow: isHighlighted 
+            ? '0 0 0 3px rgba(34, 197, 94, 0.2)' 
+            : 'none',
         }}
       >
         <div style={{ pointerEvents: 'none' }}>{nodeData?.label || 'Variable'}</div>

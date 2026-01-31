@@ -1,10 +1,12 @@
 import { useStore, type EdgeProps } from '@xyflow/react';
+import { useSelector } from 'react-redux';
 import { getStraightEdgeParams } from '../../utils/edge';
 import type { LinkEdgeData, CLDEdge } from '../../types';
 import {
   ARROW_SIZE,
   LINK_EDGE,
 } from '../../constants';
+import { selectHighlightedLoop } from '../../store/slices/uiSlice';
 
 export type UpdateEdgeData = (edgeId: string, data: Partial<LinkEdgeData>) => void;
 
@@ -25,6 +27,10 @@ const HITBOX_WIDTH = 20;
 function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) {
   const sourceNode = useStore((store) => store.nodeLookup.get(source));
   const targetNode = useStore((store) => store.nodeLookup.get(target));
+  
+  // Check if this edge is highlighted as part of a loop
+  const highlightedLoop = useSelector(selectHighlightedLoop);
+  const isHighlighted = highlightedLoop?.edgeIds.includes(id);
   
   // Check if there's a flow edge between same nodes
   const hasParallelFlow = useStore((store) => {
@@ -85,6 +91,10 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
   const midX = (startX + endX) / 2;
   const midY = (startY + endY) / 2;
 
+  // Determine edge color based on state
+  const edgeColor = isHighlighted ? '#22c55e' : (selected ? '#3b82f6' : LINK_EDGE.color);
+  const edgeWidth = isHighlighted ? LINK_EDGE.strokeWidth + 1 : LINK_EDGE.strokeWidth;
+
   return (
     <g className="react-flow__edge">
       {/* Invisible wide path for easier clicking */}
@@ -101,35 +111,43 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        strokeWidth={LINK_EDGE.strokeWidth}
-        stroke={selected ? '#3b82f6' : LINK_EDGE.color}
+        strokeWidth={edgeWidth}
+        stroke={edgeColor}
         fill="none"
         strokeDasharray={LINK_EDGE.dashArray}
         strokeLinecap="round"
-        style={{ ...style, pointerEvents: 'none' }}
+        style={{ 
+          ...style, 
+          pointerEvents: 'none',
+        }}
       />
       
       {/* Arrow at target */}
       <path
         d={`M ${targetArrowX1},${targetArrowY1} L ${endX},${endY} L ${targetArrowX2},${targetArrowY2}`}
-        strokeWidth={LINK_EDGE.strokeWidth}
-        stroke={selected ? '#3b82f6' : LINK_EDGE.color}
+        strokeWidth={edgeWidth}
+        stroke={edgeColor}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ pointerEvents: 'none' }}
+        style={{ 
+          pointerEvents: 'none',
+        }}
       />
       
       {/* Arrow at source - only for bidirectional */}
       {isBidirectional && (
         <path
           d={`M ${sourceArrowX1},${sourceArrowY1} L ${startX},${startY} L ${sourceArrowX2},${sourceArrowY2}`}
-          strokeWidth={LINK_EDGE.strokeWidth}
-          stroke={selected ? '#3b82f6' : LINK_EDGE.color}
+          strokeWidth={edgeWidth}
+          stroke={edgeColor}
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ pointerEvents: 'none' }}
+          style={{ 
+            pointerEvents: 'none',
+            transition: 'all 0.2s ease',
+          }}
         />
       )}
       
@@ -154,7 +172,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
             textAnchor="middle"
             style={{
               fontSize: '12px',
-              fill: selected ? '#3b82f6' : LINK_EDGE.color,
+              fill: edgeColor,
               pointerEvents: 'none',
             }}
           >

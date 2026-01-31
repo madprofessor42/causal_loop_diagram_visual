@@ -1,4 +1,4 @@
-import { useCallback, useRef, useMemo, useEffect } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -49,32 +49,8 @@ import {
 // Context to pass edge update function to edge components
 export type UpdateEdgeData = (edgeId: string, data: Partial<BaseEdgeData>) => void;
 
-const initialNodes: CLDNode[] = [
-  {
-    id: '1',
-    type: 'stock',
-    position: { x: 250, y: 100 },
-    data: { label: 'Population', initialValue: 1000 },
-    style: { width: STOCK_WIDTH, height: STOCK_HEIGHT },
-  },
-  {
-    id: '2',
-    type: 'variable',
-    position: { x: 450, y: 250 },
-    data: { label: 'Growth Rate', value: '0.02' },
-    style: { width: VARIABLE_WIDTH, height: VARIABLE_HEIGHT },
-  },
-  {
-    id: '3',
-    type: 'variable',
-    position: { x: 150, y: 300 },
-    data: { label: 'Birth Rate', value: '[Population] * [Growth Rate]' },
-    style: { width: VARIABLE_WIDTH, height: VARIABLE_HEIGHT },
-  },
-];
-
 // Counter for generating unique IDs
-let idCounter = 4; // Start after initial nodes (1, 2, 3)
+let idCounter = 1;
 
 function getNextId(): string {
   return `id_${idCounter++}`;
@@ -120,13 +96,6 @@ function Flow() {
   // Store source node info for cloud edge creation
   const sourceNodeIdRef = useRef<string | null>(null);
   const sourceNodeTypeRef = useRef<string | null>(null);
-  
-  // Initialize nodes on mount
-  useEffect(() => {
-    if (nodes.length === 0) {
-      dispatch(diagramActions.setNodes(initialNodes));
-    }
-  }, [dispatch, nodes.length]);
   
   // React Flow change handlers -> Redux
   const onNodesChange = useCallback(

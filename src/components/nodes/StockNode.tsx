@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Handle, Position, NodeResizer, useConnection, type NodeProps } from '@xyflow/react';
+import { useSelector } from 'react-redux';
 import {
   STOCK_WIDTH,
   STOCK_HEIGHT,
   STOCK_COLORS,
 } from '../../constants';
 import type { StockNodeData } from '../../types';
+import { selectHighlightedLoop } from '../../store/slices/uiSlice';
 
 // Center handle size - small circle that must be precisely targeted
 const CENTER_HANDLE_SIZE = 14;
@@ -19,12 +21,16 @@ const CENTER_HANDLE_BORDER = '#16a34a';
  * - Source: Small center point - must precisely hover to start connection
  * - Target: Entire node area - active only when dragging a connection
  */
-export function StockNode({ data, selected }: NodeProps) {
+export function StockNode({ data, selected, id }: NodeProps) {
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
   
   // Check if there's a connection being drawn
   const connection = useConnection();
   const isConnecting = connection.inProgress;
+
+  // Check if this node is highlighted as part of a loop
+  const highlightedLoop = useSelector(selectHighlightedLoop);
+  const isHighlighted = highlightedLoop?.nodeIds.includes(id);
 
   const nodeData = data as StockNodeData;
 
@@ -55,7 +61,9 @@ export function StockNode({ data, selected }: NodeProps) {
           width: '100%',
           height: '100%',
           background: STOCK_COLORS.background,
-          border: `2px solid ${STOCK_COLORS.border}`,
+          border: isHighlighted 
+            ? '3px solid #22c55e' 
+            : `2px solid ${STOCK_COLORS.border}`,
           borderRadius: 4,
           display: 'flex',
           flexDirection: 'column',
@@ -64,6 +72,9 @@ export function StockNode({ data, selected }: NodeProps) {
           color: STOCK_COLORS.text,
           fontWeight: 500,
           fontSize: '14px',
+          boxShadow: isHighlighted 
+            ? '0 0 0 3px rgba(34, 197, 94, 0.2)' 
+            : 'none',
         }}
       >
         <div style={{ pointerEvents: 'none' }}>{nodeData?.label || 'Stock'}</div>

@@ -2,6 +2,8 @@ import { DraggableNodeItem } from './DraggableNodeItem';
 import { EdgePropertiesPanel } from './EdgePropertiesPanel';
 import { NodePropertiesPanel } from './NodePropertiesPanel';
 import { ResizeHandle } from './ResizeHandle';
+import { ConnectionsPanel } from './ConnectionsPanel';
+import { LoopsPanel } from './LoopsPanel';
 import { useAppSelector } from '../../store/hooks';
 import { selectSelectedEdgeId, selectSelectedNodeId, selectSidebarWidth } from '../../store/slices/uiSlice';
 
@@ -68,6 +70,16 @@ export function Sidebar() {
             >
               <DraggableNodeItem nodeType="stock" label="Stock" />
               <DraggableNodeItem nodeType="variable" label="Variable" />
+            </div>
+
+            {/* Connections Panel */}
+            <div style={{ marginTop: '16px' }}>
+              <ConnectionsPanel />
+            </div>
+
+            {/* Feedback Loops Panel */}
+            <div style={{ marginTop: '16px' }}>
+              <LoopsPanel />
             </div>
           </>
         )}

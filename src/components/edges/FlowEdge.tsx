@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore, useReactFlow, type EdgeProps } from '@xyflow/react';
+import { useSelector } from 'react-redux';
 import { getStraightEdgeParams } from '../../utils/edge';
 import type { FlowEdgeData, CLDEdge } from '../../types';
 import {
   ARROW_SIZE,
   FLOW_EDGE,
 } from '../../constants';
+import { selectHighlightedLoop } from '../../store/slices/uiSlice';
 
 export type UpdateEdgeData = (edgeId: string, data: Partial<FlowEdgeData>) => void;
 
@@ -44,6 +46,10 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   const sourceNode = useStore((store) => store.nodeLookup.get(source));
   const targetNode = useStore((store) => store.nodeLookup.get(target));
   const { screenToFlowPosition } = useReactFlow();
+  
+  // Check if this edge is highlighted as part of a loop
+  const highlightedLoop = useSelector(selectHighlightedLoop);
+  const isHighlighted = highlightedLoop?.edgeIds.includes(id);
   
   // Dragging state
   const [isDraggingCloud, setIsDraggingCloud] = useState<'source' | 'target' | null>(null);
@@ -271,8 +277,9 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   // Label
   const label = edgeData?.label;
   
-  // Colors based on selection
-  const strokeColor = selected ? '#3b82f6' : FLOW_EDGE.color;
+  // Colors based on selection and highlight state
+  const strokeColor = isHighlighted ? '#22c55e' : (selected ? '#3b82f6' : FLOW_EDGE.color);
+  const strokeWidth = isHighlighted ? FLOW_EDGE.strokeWidth + 1 : FLOW_EDGE.strokeWidth;
 
   return (
     <g className="react-flow__edge">
@@ -290,11 +297,14 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        strokeWidth={FLOW_EDGE.strokeWidth}
+        strokeWidth={strokeWidth}
         stroke={strokeColor}
         fill="none"
         strokeLinecap="round"
-        style={{ ...style, pointerEvents: 'none' }}
+        style={{ 
+          ...style, 
+          pointerEvents: 'none',
+        }}
       />
       
       {/* Valve indicator at midpoint */}
@@ -303,10 +313,12 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         y1={valve1Y}
         x2={valve2X}
         y2={valve2Y}
-        strokeWidth={FLOW_EDGE.strokeWidth}
+        strokeWidth={strokeWidth}
         stroke={strokeColor}
         strokeLinecap="round"
-        style={{ pointerEvents: 'none' }}
+        style={{ 
+          pointerEvents: 'none',
+        }}
       />
       
       {/* Filled arrowhead at target */}
@@ -317,7 +329,9 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         fill={strokeColor}
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ pointerEvents: 'none' }}
+        style={{ 
+          pointerEvents: 'none',
+        }}
       />
       
       {/* Filled arrowhead at source - only for bidirectional */}
@@ -329,7 +343,9 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
           fill={strokeColor}
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ pointerEvents: 'none' }}
+          style={{ 
+            pointerEvents: 'none',
+          }}
         />
       )}
       
