@@ -23,15 +23,21 @@ export function NodePropertiesPanel() {
   useEffect(() => {
     if (!selectedNode) return;
     
+    // Sync form state with selected node data
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLabel(selectedNode.data.label || '');
+     
     setNotes(selectedNode.data.notes || '');
-    setUnits(selectedNode.data.units || '');
+     
+    setUnits((selectedNode.data.units as string | undefined) || '');
     
     if (selectedNode.type === 'stock') {
       const stockData = selectedNode.data as StockNodeData;
+       
       setInitialValue(stockData.initialValue?.toString() || '');
     } else if (selectedNode.type === 'variable') {
       const variableData = selectedNode.data as VariableNodeData;
+       
       setValue(variableData.value || '');
     }
   }, [selectedNode]);

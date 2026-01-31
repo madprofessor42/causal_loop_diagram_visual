@@ -21,14 +21,14 @@ export function LoopsPanel() {
   }, [nodes]);
 
   // Helper to get loop polarity symbol
-  const getLoopSymbol = (_cycle: Cycle) => {
+  const getLoopSymbol = () => {
     // For now, we use a generic loop symbol
     // In future, we can add polarity detection (+ or -)
     return '↻'; // Circular arrow
   };
 
   // Helper to get loop color - using single neutral color for all loops
-  const getLoopColor = (_length: number) => {
+  const getLoopColor = () => {
     return '#6b7280'; // Gray for all loops
   };
 

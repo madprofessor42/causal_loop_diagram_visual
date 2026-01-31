@@ -2,12 +2,7 @@
  * Edge type definitions for Stock and Flow diagrams
  */
 
-import type { Edge, EdgeProps } from '@xyflow/react';
-
-/**
- * Edge visual styles
- */
-export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
+import type { Edge } from '@xyflow/react';
 
 /**
  * Base data that all edges share
@@ -17,8 +12,6 @@ export interface BaseEdgeData extends Record<string, unknown> {
   label?: string;
   /** Optional notes/comments */
   notes?: string;
-  /** Visual line style */
-  lineStyle?: EdgeLineStyle;
   /** Is this edge bidirectional (has arrows on both ends) */
   bidirectional?: boolean;
 }
@@ -26,6 +19,7 @@ export interface BaseEdgeData extends Record<string, unknown> {
 /**
  * Link edge data - information connection (dashed line)
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface LinkEdgeData extends BaseEdgeData {
   // Link is a simple information connection
 }
@@ -61,11 +55,6 @@ export type EdgeVariant = 'link' | 'flow';
 export type CLDEdge<T extends BaseEdgeData = BaseEdgeData> = Edge<T> & {
   type: EdgeVariant;
 };
-
-/**
- * Edge component props type
- */
-export type CLDEdgeProps<T extends BaseEdgeData = BaseEdgeData> = EdgeProps<CLDEdge<T>>;
 
 /**
  * Straight edge params (simplified)

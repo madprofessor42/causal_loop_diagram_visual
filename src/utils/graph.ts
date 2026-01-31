@@ -22,10 +22,6 @@ export interface Cycle {
  */
 export function findCycles(nodes: CLDNode[], edges: CLDEdge[]): Cycle[] {
   const cycles: Cycle[] = [];
-  const visited = new Set<string>();
-  const recursionStack = new Set<string>();
-  const path: string[] = [];
-  const pathEdges: string[] = [];
 
   // Build adjacency list: node -> array of {targetNode, edgeId}
   const adjacencyList = new Map<string, Array<{ target: string; edgeId: string }>>();
@@ -57,19 +53,26 @@ export function findCycles(nodes: CLDNode[], edges: CLDEdge[]): Cycle[] {
   });
 
   /**
-   * DFS to find cycles
+   * DFS to find cycles starting from a specific node
    */
-  function dfs(nodeId: string): void {
-    visited.add(nodeId);
-    recursionStack.add(nodeId);
-    path.push(nodeId);
+  function dfs(
+    startNodeId: string,
+    currentNodeId: string,
+    visited: Set<string>,
+    recursionStack: Set<string>,
+    path: string[],
+    pathEdges: string[]
+  ): void {
+    visited.add(currentNodeId);
+    recursionStack.add(currentNodeId);
+    path.push(currentNodeId);
 
-    const neighbors = adjacencyList.get(nodeId) || [];
+    const neighbors = adjacencyList.get(currentNodeId) || [];
 
     for (const { target, edgeId } of neighbors) {
       if (!visited.has(target)) {
         pathEdges.push(edgeId);
-        dfs(target);
+        dfs(startNodeId, target, visited, recursionStack, path, pathEdges);
         pathEdges.pop();
       } else if (recursionStack.has(target)) {
         // Found a cycle!
@@ -92,14 +95,19 @@ export function findCycles(nodes: CLDNode[], edges: CLDEdge[]): Cycle[] {
     }
 
     path.pop();
-    recursionStack.delete(nodeId);
+    recursionStack.delete(currentNodeId);
+    visited.delete(currentNodeId); // Allow revisiting this node via different paths
   }
 
-  // Run DFS from each unvisited node
+  // Run DFS from each node as a starting point
+  // This ensures we find all cycles, not just those reachable from first node
   nodes.forEach(node => {
-    if (!visited.has(node.id)) {
-      dfs(node.id);
-    }
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+    const path: string[] = [];
+    const pathEdges: string[] = [];
+    
+    dfs(node.id, node.id, visited, recursionStack, path, pathEdges);
   });
 
   // Sort cycles by length (shorter cycles first)
@@ -140,22 +148,5 @@ function isDuplicateCycle(existingCycles: Cycle[], newCycleNodes: string[]): boo
   }
 
   return false;
-}
-
-/**
- * Classify a cycle as reinforcing (positive feedback) or balancing (negative feedback)
- * based on the polarity of links
- * 
- * Note: This is a simplified version. In a full implementation, you'd need to 
- * analyze the actual relationships (+ or -) between connected nodes.
- */
-export function classifyCycle(cycle: Cycle, edges: CLDEdge[]): 'reinforcing' | 'balancing' | 'unknown' {
-  // This is a placeholder - in a real implementation, you would:
-  // 1. Check each edge's polarity (+ or -)
-  // 2. Count the number of negative links
-  // 3. Even number of negatives = reinforcing (positive feedback)
-  // 4. Odd number of negatives = balancing (negative feedback)
-  
-  return 'unknown';
 }
 

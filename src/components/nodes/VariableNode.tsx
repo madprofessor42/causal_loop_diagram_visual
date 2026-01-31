@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { Handle, Position, NodeResizer, useConnection, type NodeProps } from '@xyflow/react';
 import { useSelector } from 'react-redux';
-import {
-  VARIABLE_WIDTH,
-  VARIABLE_HEIGHT,
-  VARIABLE_COLORS,
-} from '../../constants';
+import { VARIABLE_COLORS } from '../../constants';
 import type { VariableNodeData } from '../../types';
 import { selectConnectionMode, selectHighlightedLoop } from '../../store/slices/uiSlice';
 

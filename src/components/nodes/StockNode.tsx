@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { Handle, Position, NodeResizer, useConnection, type NodeProps } from '@xyflow/react';
 import { useSelector } from 'react-redux';
-import {
-  STOCK_WIDTH,
-  STOCK_HEIGHT,
-  STOCK_COLORS,
-} from '../../constants';
+import { STOCK_COLORS } from '../../constants';
 import type { StockNodeData } from '../../types';
 import { selectHighlightedLoop } from '../../store/slices/uiSlice';
 

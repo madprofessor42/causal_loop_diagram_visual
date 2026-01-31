@@ -2,7 +2,7 @@
  * Node type definitions for Stock and Flow diagrams
  */
 
-import type { Node, NodeProps } from '@xyflow/react';
+import type { Node } from '@xyflow/react';
 
 /**
  * Base data that all nodes share
@@ -45,8 +45,3 @@ export type NodeVariant = 'stock' | 'variable';
 export type CLDNode<T extends BaseNodeData = BaseNodeData> = Node<T> & {
   type: NodeVariant;
 };
-
-/**
- * Node component props type
- */
-export type CLDNodeProps<T extends BaseNodeData = BaseNodeData> = NodeProps<CLDNode<T>>;
