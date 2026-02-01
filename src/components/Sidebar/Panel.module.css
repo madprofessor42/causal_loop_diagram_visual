@@ -1,0 +1,81 @@
+/* Общий CSS Module для панелей Sidebar */
+
+/* Основная панель */
+.panel {
+  padding: var(--spacing-lg);
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+}
+
+/* Заголовок панели */
+.panelTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Подзаголовок */
+.panelSubtitle {
+  font-size: 11px;
+  color: var(--gray-500);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.4;
+}
+
+/* Секция внутри панели */
+.panelSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* Пустое состояние */
+.panelEmpty {
+  font-size: 12px;
+  color: var(--gray-500);
+  font-style: italic;
+}
+
+/* Item в списке */
+.item {
+  padding: 8px 12px;
+  background-color: var(--gray-50);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-200);
+  font-size: 12px;
+}
+
+/* Flex контейнер для элементов */
+.itemRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Badge/метка */
+.badge {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badgeFlow {
+  background-color: var(--blue-500);
+  color: white;
+}
+
+.badgeLink {
+  background-color: var(--gray-500);
+  color: white;
+}
+
+.badgeSecondary {
+  background-color: var(--gray-100);
+  color: var(--gray-500);
+  font-weight: 500;
+}
+

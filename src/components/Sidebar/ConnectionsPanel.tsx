@@ -1,5 +1,6 @@
 import { useAppSelector } from '../../store/hooks';
 import { selectNodes, selectEdges } from '../../store/slices/diagramSlice';
+import panelStyles from './Panel.module.css';
 
 export function ConnectionsPanel() {
   const nodes = useAppSelector(selectNodes);
@@ -44,31 +45,11 @@ export function ConnectionsPanel() {
 
   if (regularEdges.length === 0) {
     return (
-      <div
-        style={{
-          padding: '16px',
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          border: '1px solid #e5e7eb',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '14px',
-            fontWeight: 600,
-            color: '#111827',
-            marginBottom: '8px',
-          }}
-        >
+      <div className={panelStyles.panel}>
+        <div className={panelStyles.panelTitle}>
           Connections
         </div>
-        <div
-          style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            fontStyle: 'italic',
-          }}
-        >
+        <div className={panelStyles.panelEmpty}>
           No connections yet. Connect nodes to see their relationships here.
         </div>
       </div>
@@ -76,34 +57,14 @@ export function ConnectionsPanel() {
   }
 
   return (
-    <div
-      style={{
-        padding: '16px',
-        backgroundColor: '#ffffff',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-      }}
-    >
+    <div className={panelStyles.panel}>
       {/* Header */}
-      <div
-        style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: '#111827',
-          marginBottom: '12px',
-        }}
-      >
+      <div className={panelStyles.panelTitle}>
         Connections ({regularEdges.length})
       </div>
 
       {/* Connections list */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-        }}
-      >
+      <div className={panelStyles.panelSection}>
         {regularEdges.map(edge => {
           const sourceLabel = nodeLabels.get(edge.source) || edge.source;
           const targetLabel = nodeLabels.get(edge.target) || edge.target;
@@ -113,25 +74,9 @@ export function ConnectionsPanel() {
           const isBidirectional = edge.data?.bidirectional;
 
           return (
-            <div
-              key={edge.id}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '6px',
-                border: '1px solid #e5e7eb',
-                fontSize: '12px',
-              }}
-            >
+            <div key={edge.id} className={panelStyles.item}>
               {/* Connection visualization */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  marginBottom: '4px',
-                }}
-              >
+              <div className={panelStyles.itemRow} style={{ marginBottom: '4px' }}>
                 <span
                   style={{
                     fontWeight: 500,
@@ -171,38 +116,12 @@ export function ConnectionsPanel() {
               </div>
 
               {/* Edge type badge */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginTop: '4px',
-                }}
-              >
-                <span
-                  style={{
-                    padding: '2px 6px',
-                    backgroundColor: edgeColor,
-                    color: '#ffffff',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    textTransform: 'uppercase',
-                  }}
-                >
+              <div className={panelStyles.itemRow} style={{ marginTop: '4px' }}>
+                <span className={`${panelStyles.badge} ${edge.type === 'flow' ? panelStyles.badgeFlow : panelStyles.badgeLink}`}>
                   {edgeType}
                 </span>
                 {isBidirectional && (
-                  <span
-                    style={{
-                      padding: '2px 6px',
-                      backgroundColor: '#f3f4f6',
-                      color: '#6b7280',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 500,
-                    }}
-                  >
+                  <span className={`${panelStyles.badge} ${panelStyles.badgeSecondary}`}>
                     Bidirectional
                   </span>
                 )}

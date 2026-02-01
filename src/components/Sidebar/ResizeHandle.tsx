@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { uiActions, selectSidebarWidth } from '../../store/slices/uiSlice';
+import styles from './ResizeHandle.module.css';
 
 export function ResizeHandle() {
   const dispatch = useAppDispatch();
@@ -49,42 +50,18 @@ export function ResizeHandle() {
 
   return (
     <div
+      className={styles.handle}
       onMouseDown={handleMouseDown}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: '8px',
-        height: '100%',
-        cursor: 'col-resize',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
     >
       {/* Visual indicator */}
       <div
-        style={{
-          width: '1px',
-          height: '100%',
-          backgroundColor: isResizing || isHovered ? '#3b82f6' : '#e5e7eb',
-          transition: isResizing ? 'none' : 'background-color 0.2s',
-        }}
+        className={`${styles.indicator} ${isHovered ? styles.hovered : ''} ${isResizing ? styles.resizing : ''}`}
       />
       
       {/* Wider hover/drag area */}
-      <div
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          top: 0,
-          left: 0,
-        }}
-      />
+      <div className={styles.dragArea} />
     </div>
   );
 }

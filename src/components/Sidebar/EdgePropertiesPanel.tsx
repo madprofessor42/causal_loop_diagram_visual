@@ -2,6 +2,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectSelectedEdgeId, uiActions } from '../../store/slices/uiSlice';
 import { selectEdges, diagramActions } from '../../store/slices/diagramSlice';
 import type { CLDEdge, FlowEdgeData, LinkEdgeData } from '../../types';
+import styles from './EdgePropertiesPanel.module.css';
 
 /**
  * EdgePropertiesPanel - Shows properties and controls for selected edge
@@ -47,136 +48,51 @@ export function EdgePropertiesPanel() {
   };
   
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-      }}
-    >
+    <div className={styles.container}>
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: '#111827',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}
-        >
+      <div className={styles.header}>
+        <div className={styles.title}>
           {isFlow ? 'Flow' : 'Link'} Edge
         </div>
-        <button
-          onClick={handleClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 18,
-            color: '#6b7280',
-            padding: 4,
-          }}
-        >
+        <button onClick={handleClose} className={styles.closeButton}>
           ×
         </button>
       </div>
       
       {/* Edge info */}
-      <div
-        style={{
-          fontSize: 12,
-          color: '#6b7280',
-          background: '#f3f4f6',
-          padding: 8,
-          borderRadius: 4,
-        }}
-      >
+      <div className={styles.info}>
         <div>ID: {selectedEdge.id.slice(0, 20)}...</div>
         <div>Type: {selectedEdge.type}</div>
       </div>
       
       {/* Direction controls */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: '#374151',
-          }}
-        >
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 8 }}>
           Direction
         </div>
         
         {/* Bidirectional toggle */}
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            cursor: 'pointer',
-            fontSize: 13,
-            color: '#4b5563',
-          }}
-        >
+        <label className={styles.label}>
           <input
             type="checkbox"
             checked={isBidirectional}
             onChange={handleToggleBidirectional}
-            style={{ cursor: 'pointer' }}
+            className={styles.checkbox}
           />
           Bidirectional {isFlow ? '↔' : '⟷'}
         </label>
         
         {/* Reverse direction button */}
         {!isBidirectional && (
-          <button
-            onClick={handleReverseDirection}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 4,
-              border: '1px solid #d1d5db',
-              background: 'white',
-              cursor: 'pointer',
-              fontSize: 13,
-              color: '#374151',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
+          <button onClick={handleReverseDirection} className={styles.button} style={{ marginTop: 8 }}>
             ⇄ Reverse Direction
           </button>
         )}
       </div>
       
       {/* Label input */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-        }}
-      >
-        <label
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: '#374151',
-          }}
-        >
+      <div>
+        <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 6 }}>
           Label
         </label>
         <input
@@ -194,25 +110,14 @@ export function EdgePropertiesPanel() {
             borderRadius: 4,
             border: '1px solid #d1d5db',
             fontSize: 13,
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         />
       </div>
       
       {/* Delete button */}
-      <button
-        onClick={handleDelete}
-        style={{
-          padding: '8px 12px',
-          borderRadius: 4,
-          border: 'none',
-          background: '#ef4444',
-          color: 'white',
-          cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 500,
-          marginTop: 8,
-        }}
-      >
+      <button onClick={handleDelete} className={`${styles.button} ${styles.buttonDanger}`} style={{ marginTop: 8 }}>
         Delete Edge
       </button>
     </div>

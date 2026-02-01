@@ -1,0 +1,52 @@
+/* CSS Variables для проекта Causal Loop Diagram Visual */
+
+:root {
+  /* Цвета для Stock nodes */
+  --stock-bg: #a8c5e2;
+  --stock-border: #5b9bd5;
+  --stock-text: #1a1a1a;
+  
+  /* Цвета для Variable nodes */
+  --variable-bg: #f8cbad;
+  --variable-border: #ed7d31;
+  --variable-text: #1a1a1a;
+  
+  /* Цвета для edges */
+  --edge-link: #666666;
+  --edge-flow: #5b9bd5;
+  
+  /* Highlight colors */
+  --highlight-main: #22c55e;
+  --highlight-bg: rgba(34, 197, 94, 0.2);
+  --highlight-border: #16a34a;
+  
+  /* UI colors */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-900: #111827;
+  
+  --blue-100: #dbeafe;
+  --blue-500: #3b82f6;
+  --blue-800: #1e40af;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+

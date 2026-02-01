@@ -6,6 +6,7 @@ import { ConnectionsPanel } from './ConnectionsPanel';
 import { LoopsPanel } from './LoopsPanel';
 import { useAppSelector } from '../../store/hooks';
 import { selectSelectedEdgeId, selectSelectedNodeId, selectSidebarWidth } from '../../store/slices/uiSlice';
+import styles from './Sidebar.module.css';
 
 export function Sidebar() {
   const selectedEdgeId = useAppSelector(selectSelectedEdgeId);
@@ -13,21 +14,8 @@ export function Sidebar() {
   const sidebarWidth = useAppSelector(selectSidebarWidth);
   
   return (
-    <aside className="sidebar" style={{ position: 'relative', width: sidebarWidth }}>
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          backgroundColor: '#f8f9fa',
-          borderRight: '1px solid #e5e7eb',
-          padding: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-          boxSizing: 'border-box',
-          overflowY: 'auto',
-        }}
-      >
+    <aside className={styles.sidebar} style={{ width: sidebarWidth }}>
+      <div className={styles.container}>
         {/* Show edge properties panel if an edge is selected */}
         {selectedEdgeId ? (
           <EdgePropertiesPanel />
@@ -37,48 +25,28 @@ export function Sidebar() {
         ) : (
           <>
             {/* Header */}
-            <div
-              style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: '#111827',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
+            <div className={styles.header}>
               Nodes
             </div>
             
             {/* Description */}
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                lineHeight: 1.4,
-              }}
-            >
+            <div className={styles.description}>
               Drag nodes to the canvas to create your diagram
             </div>
             
             {/* Node items */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}
-            >
+            <div className={styles.nodeItems}>
               <DraggableNodeItem nodeType="stock" label="Stock" />
               <DraggableNodeItem nodeType="variable" label="Variable" />
             </div>
 
             {/* Connections Panel */}
-            <div style={{ marginTop: '16px' }}>
+            <div className={styles.section}>
               <ConnectionsPanel />
             </div>
 
             {/* Feedback Loops Panel */}
-            <div style={{ marginTop: '16px' }}>
+            <div className={styles.section}>
               <LoopsPanel />
             </div>
           </>

@@ -1,14 +1,9 @@
 import { useState } from 'react';
 import { Handle, Position, NodeResizer, useConnection, type NodeProps } from '@xyflow/react';
 import { useSelector } from 'react-redux';
-import { VARIABLE_COLORS } from '../../constants';
 import type { VariableNodeData } from '../../types';
 import { selectConnectionMode, selectHighlightedLoop } from '../../store/slices/uiSlice';
-
-// Center handle size - small circle that must be precisely targeted
-const CENTER_HANDLE_SIZE = 14;
-const CENTER_HANDLE_COLOR = '#22c55e';
-const CENTER_HANDLE_BORDER = '#16a34a';
+import styles from './VariableNode.module.css';
 
 /**
  * VariableNode - Formula or constant node (orange oval)
@@ -35,13 +30,7 @@ export function VariableNode({ data, selected, id }: NodeProps) {
   const nodeData = data as VariableNodeData;
 
   return (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-      }}
-    >
+    <div className={styles.container}>
       {/* Resize handles - only visible when node is selected */}
       <NodeResizer
         isVisible={selected}
@@ -55,48 +44,13 @@ export function VariableNode({ data, selected, id }: NodeProps) {
       />
       
       {/* The visual oval */}
-      <div
-        className="variable-node"
-        style={{
-          width: '100%',
-          height: '100%',
-          background: VARIABLE_COLORS.background,
-          border: isHighlighted 
-            ? '3px solid #22c55e' 
-            : `2px solid ${VARIABLE_COLORS.border}`,
-          borderRadius: '50%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: VARIABLE_COLORS.text,
-          fontWeight: 500,
-          fontSize: '14px',
-          boxShadow: isHighlighted 
-            ? '0 0 0 3px rgba(34, 197, 94, 0.2)' 
-            : 'none',
-        }}
-      >
-        <div style={{ pointerEvents: 'none' }}>{nodeData?.label || 'Variable'}</div>
+      <div className={`${styles.shape} ${isHighlighted ? styles.highlighted : ''}`}>
+        <div className={styles.label}>{nodeData?.label || 'Variable'}</div>
       </div>
 
       {/* Center handle indicator - visible only in link mode, highlights on hover */}
-      <div
-        style={{
-          position: 'absolute',
-          width: CENTER_HANDLE_SIZE,
-          height: CENTER_HANDLE_SIZE,
-          background: isHoveringHandle ? CENTER_HANDLE_COLOR : 'rgba(34, 197, 94, 0.4)',
-          border: `2px solid ${isHoveringHandle ? CENTER_HANDLE_BORDER : 'rgba(22, 163, 74, 0.6)'}`,
-          borderRadius: '50%',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          pointerEvents: 'none',
-          zIndex: 15,
-          transition: 'all 0.15s ease',
-          opacity: showCenterHandle ? 1 : 0,
-        }}
+      <div 
+        className={`${styles.handleIndicator} ${showCenterHandle ? styles.visible : ''} ${isHoveringHandle ? styles.active : ''}`}
       />
 
       {/* Source handle - exactly at center, small size for starting connections */}
@@ -107,18 +61,9 @@ export function VariableNode({ data, selected, id }: NodeProps) {
         id="source"
         onMouseEnter={() => setIsHoveringHandle(true)}
         onMouseLeave={() => setIsHoveringHandle(false)}
+        className={styles.handleSource}
         style={{
-          position: 'absolute',
-          width: CENTER_HANDLE_SIZE,
-          height: CENTER_HANDLE_SIZE,
-          background: 'transparent',
-          border: 'none',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
           cursor: showCenterHandle ? 'crosshair' : 'default',
-          zIndex: 20,
-          // Disable pointer events when not in link mode
           pointerEvents: showCenterHandle ? 'auto' : 'none',
         }}
       />
@@ -129,18 +74,8 @@ export function VariableNode({ data, selected, id }: NodeProps) {
         type="target"
         position={Position.Top}
         id="target"
+        className={styles.handleTarget}
         style={{
-          position: 'absolute',
-          width: '100%',
-          height: '100%',
-          background: 'transparent',
-          border: 'none',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          borderRadius: '50%',
-          zIndex: 10,
-          // Only enable pointer events when actively connecting in link mode
           pointerEvents: (isConnecting && showCenterHandle) ? 'auto' : 'none',
         }}
       />

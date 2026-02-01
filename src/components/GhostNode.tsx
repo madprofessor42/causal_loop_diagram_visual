@@ -4,11 +4,10 @@ import { selectDragNodeType } from '../store/slices/uiSlice';
 import {
   STOCK_WIDTH,
   STOCK_HEIGHT,
-  STOCK_COLORS,
   VARIABLE_WIDTH,
   VARIABLE_HEIGHT,
-  VARIABLE_COLORS,
 } from '../constants';
+import styles from './GhostNode.module.css';
 
 interface GhostNodeProps {
   position: { x: number; y: number };
@@ -30,7 +29,6 @@ export function GhostNode({ position }: GhostNodeProps) {
   const screenY = position.y * zoom + viewY;
   
   const isStock = nodeType === 'stock';
-  const colors = isStock ? STOCK_COLORS : VARIABLE_COLORS;
   
   // Scale the node size based on zoom and node type
   const scaledWidth = (isStock ? STOCK_WIDTH : VARIABLE_WIDTH) * zoom;
@@ -38,25 +36,14 @@ export function GhostNode({ position }: GhostNodeProps) {
   
   return (
     <div
-      className="ghost-node"
+      className={`${styles.ghost} ${isStock ? styles.stock : styles.variable}`}
       style={{
-        position: 'absolute',
         left: screenX,
         top: screenY,
         width: scaledWidth,
         height: scaledHeight,
-        pointerEvents: 'none',
         transform: 'translate(-50%, -50%)',
-        zIndex: 1000,
-        borderRadius: isStock ? 4 * zoom : '50%',
-        background: colors.background,
-        border: `2px solid ${colors.border}`,
-        opacity: 0.5,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: colors.text,
-        fontWeight: 500,
+        borderRadius: isStock ? `${4 * zoom}px` : '50%',
         fontSize: `${14 * zoom}px`,
       }}
     >

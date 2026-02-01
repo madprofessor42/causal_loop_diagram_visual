@@ -1,0 +1,30 @@
+/* LinkEdge CSS Module */
+
+/* Invisible hitbox для легкого клика */
+.hitbox {
+  cursor: pointer;
+  pointer-events: all;
+}
+
+/* Outline layer для подсветки */
+.outline {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Main edge path */
+.mainPath {
+  pointer-events: none;
+}
+
+/* Label background */
+.labelBg {
+  pointer-events: none;
+}
+
+/* Label text */
+.labelText {
+  font-size: 12px;
+  pointer-events: none;
+}
+

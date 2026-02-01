@@ -1,0 +1,25 @@
+/* GhostNode CSS Module */
+
+.ghost {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.stock {
+  background: var(--stock-bg);
+  border: 2px solid var(--stock-border);
+  color: var(--stock-text);
+}
+
+.variable {
+  background: var(--variable-bg);
+  border: 2px solid var(--variable-border);
+  color: var(--variable-text);
+}
+

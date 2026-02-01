@@ -1,0 +1,59 @@
+/* DraggableNodeItem CSS Module */
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 10px 12px;
+  background-color: #fff;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.item:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--gray-300);
+}
+
+.item:active {
+  cursor: grabbing;
+}
+
+/* Node preview icon */
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.iconStock {
+  width: 36px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--stock-bg);
+  border: 2px solid var(--stock-border);
+  color: var(--stock-text);
+}
+
+.iconVariable {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--variable-bg);
+  border: 2px solid var(--variable-border);
+  color: var(--variable-text);
+}
+
+/* Label */
+.label {
+  font-size: 14px;
+  color: var(--gray-700);
+  font-weight: 500;
+}
+

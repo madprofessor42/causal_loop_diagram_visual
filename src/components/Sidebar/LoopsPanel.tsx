@@ -4,6 +4,8 @@ import { selectNodes, selectEdges } from '../../store/slices/diagramSlice';
 import { uiActions } from '../../store/slices/uiSlice';
 import { findCycles } from '../../utils/graph';
 import type { Cycle } from '../../utils/graph';
+import panelStyles from './Panel.module.css';
+import styles from './LoopsPanel.module.css';
 
 export function LoopsPanel() {
   const dispatch = useAppDispatch();
@@ -21,14 +23,14 @@ export function LoopsPanel() {
   }, [nodes]);
 
   // Helper to get loop polarity symbol
-  const getLoopSymbol = () => {
+  const getLoopSymbol = (_cycle: Cycle) => {
     // For now, we use a generic loop symbol
     // In future, we can add polarity detection (+ or -)
     return '↻'; // Circular arrow
   };
 
   // Helper to get loop color - using single neutral color for all loops
-  const getLoopColor = () => {
+  const getLoopColor = (_length: number) => {
     return '#6b7280'; // Gray for all loops
   };
 
@@ -53,31 +55,11 @@ export function LoopsPanel() {
 
   if (cycles.length === 0) {
     return (
-      <div
-        style={{
-          padding: '16px',
-          backgroundColor: '#ffffff',
-          borderRadius: '8px',
-          border: '1px solid #e5e7eb',
-        }}
-      >
-        <div
-          style={{
-            fontSize: '14px',
-            fontWeight: 600,
-            color: '#111827',
-            marginBottom: '8px',
-          }}
-        >
+      <div className={panelStyles.panel}>
+        <div className={panelStyles.panelTitle}>
           Feedback Loops
         </div>
-        <div
-          style={{
-            fontSize: '12px',
-            color: '#6b7280',
-            fontStyle: 'italic',
-          }}
-        >
+        <div className={panelStyles.panelEmpty}>
           No feedback loops detected. Create connections to form loops.
         </div>
       </div>
@@ -85,45 +67,18 @@ export function LoopsPanel() {
   }
 
   return (
-    <div
-      style={{
-        padding: '16px',
-        backgroundColor: '#ffffff',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-      }}
-    >
+    <div className={panelStyles.panel}>
       {/* Header */}
-      <div
-        style={{
-          fontSize: '14px',
-          fontWeight: 600,
-          color: '#111827',
-          marginBottom: '8px',
-        }}
-      >
+      <div className={panelStyles.panelTitle}>
         Feedback Loops ({cycles.length})
       </div>
 
-      <div
-        style={{
-          fontSize: '11px',
-          color: '#6b7280',
-          marginBottom: '12px',
-          lineHeight: 1.4,
-        }}
-      >
+      <div className={panelStyles.panelSubtitle}>
         Cycles where paths return to their starting point
       </div>
 
       {/* Loops list */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
+      <div className={panelStyles.panelSection}>
         {cycles.map((cycle, index) => {
           const loopSymbol = getLoopSymbol(cycle);
           const loopColor = getLoopColor(cycle.length);
@@ -132,70 +87,23 @@ export function LoopsPanel() {
           return (
             <div
               key={`cycle-${index}`}
+              className={styles.loopItem}
               onMouseEnter={() => handleLoopMouseEnter(cycle)}
               onMouseLeave={handleLoopMouseLeave}
-              style={{
-                padding: '10px 12px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '6px',
-                border: '1px solid #e5e7eb',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#f0fdf4';
-                e.currentTarget.style.borderColor = '#86efac';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = '#f9fafb';
-                e.currentTarget.style.borderColor = '#e5e7eb';
-              }}
             >
               {/* Loop header */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '18px',
-                    color: loopColor,
-                    fontWeight: 'bold',
-                    flexShrink: 0,
-                  }}
-                >
+              <div className={styles.loopHeader}>
+                <span className={styles.loopSymbol} style={{ color: loopColor }}>
                   {loopSymbol}
                 </span>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: '#111827',
-                      }}
-                    >
+                <div className={styles.loopTitleRow}>
+                  <div className={styles.loopTitleContent}>
+                    <span className={styles.loopTitle}>
                       Loop {index + 1}
                     </span>
-                    <span
-                      style={{
-                        padding: '2px 6px',
-                        backgroundColor: loopColor,
-                        color: '#ffffff',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: 600,
-                      }}
+                    <span 
+                      className={styles.loopBadge}
+                      style={{ backgroundColor: loopColor }}
                     >
                       {cycle.length} nodes
                     </span>
@@ -204,30 +112,12 @@ export function LoopsPanel() {
               </div>
 
               {/* Loop path visualization */}
-              <div
-                style={{
-                  padding: '8px',
-                  backgroundColor: '#ffffff',
-                  borderRadius: '4px',
-                  border: '1px solid #e5e7eb',
-                  fontSize: '11px',
-                  color: '#374151',
-                  lineHeight: 1.6,
-                  wordBreak: 'break-word',
-                }}
-              >
+              <div className={styles.loopPath}>
                 {loopPath}
               </div>
 
               {/* Loop metadata */}
-              <div
-                style={{
-                  marginTop: '8px',
-                  display: 'flex',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                }}
-              >
+              <div className={styles.loopMetadata}>
                 {cycle.length === 2 && (
                   <span
                     style={{

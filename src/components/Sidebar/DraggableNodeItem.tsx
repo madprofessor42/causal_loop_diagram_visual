@@ -2,7 +2,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import { useAppDispatch } from '../../store/hooks';
 import { uiActions } from '../../store/slices/uiSlice';
 import type { NodeVariant } from '../../types';
-import { STOCK_COLORS, VARIABLE_COLORS } from '../../constants';
+import styles from './DraggableNodeItem.module.css';
 
 interface DraggableNodeItemProps {
   nodeType: NodeVariant;
@@ -42,57 +42,22 @@ export function DraggableNodeItem({ nodeType, label }: DraggableNodeItemProps) {
     dispatch(uiActions.setDragEnd());
   }, [dispatch]);
 
-  // Get colors based on node type
-  const colors = nodeType === 'stock' ? STOCK_COLORS : VARIABLE_COLORS;
   const isStock = nodeType === 'stock';
 
   return (
     <div
-      className="draggable-node-item"
+      className={styles.item}
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '10px 12px',
-        backgroundColor: '#fff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        cursor: 'grab',
-        transition: 'all 0.2s ease',
-        userSelect: 'none',
-      }}
     >
       {/* Node preview icon */}
-      <div
-        style={{
-          width: isStock ? 36 : 32,
-          height: isStock ? 24 : 32,
-          borderRadius: isStock ? '4px' : '50%',
-          background: colors.background,
-          border: `2px solid ${colors.border}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.text,
-          fontSize: '10px',
-          fontWeight: 500,
-          flexShrink: 0,
-        }}
-      >
+      <div className={`${styles.icon} ${isStock ? styles.iconStock : styles.iconVariable}`}>
         {isStock ? '□' : '○'}
       </div>
       
       {/* Label */}
-      <span
-        style={{
-          fontSize: '14px',
-          color: '#374151',
-          fontWeight: 500,
-        }}
-      >
+      <span className={styles.label}>
         {label}
       </span>
     </div>

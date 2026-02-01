@@ -8,6 +8,7 @@ import {
   FLOW_EDGE,
 } from '../../constants';
 import { selectHighlightedLoop } from '../../store/slices/uiSlice';
+import styles from './FlowEdge.module.css';
 
 export type UpdateEdgeData = (edgeId: string, data: Partial<FlowEdgeData>) => void;
 
@@ -289,7 +290,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         strokeWidth={HITBOX_WIDTH}
         stroke="transparent"
         fill="none"
-        style={{ cursor: 'pointer' }}
+        className={styles.hitbox}
       />
       
       {/* Outline layer - drawn first (underneath) when highlighted or selected */}
@@ -302,10 +303,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
             stroke={highlightColor}
             fill="none"
             strokeLinecap="round"
-            style={{ 
-              pointerEvents: 'none',
-              opacity: 0.6,
-            }}
+            className={styles.outline}
           />
           
           {/* Outline for valve indicator */}
@@ -317,10 +315,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
             strokeWidth={outlineWidth}
             stroke={highlightColor}
             strokeLinecap="round"
-            style={{ 
-              pointerEvents: 'none',
-              opacity: 0.6,
-            }}
+            className={styles.outline}
           />
           
           {/* Outline for arrowhead at target */}
@@ -331,10 +326,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ 
-              pointerEvents: 'none',
-              opacity: 0.6,
-            }}
+            className={styles.outline}
           />
           
           {/* Outline for arrowhead at source - only for bidirectional */}
@@ -346,10 +338,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ 
-                pointerEvents: 'none',
-                opacity: 0.6,
-              }}
+              className={styles.outline}
             />
           )}
         </>
@@ -358,16 +347,13 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
       {/* Main edge path - thick solid line for Flow (always in original color) */}
       <path
         id={id}
-        className="react-flow__edge-path"
+        className={`react-flow__edge-path ${styles.mainPath}`}
         d={edgePath}
         strokeWidth={FLOW_EDGE.strokeWidth}
         stroke={FLOW_EDGE.color}
         fill="none"
         strokeLinecap="round"
-        style={{ 
-          ...style, 
-          pointerEvents: 'none',
-        }}
+        style={style}
       />
       
       {/* Valve indicator at midpoint (always in original color) */}
@@ -379,9 +365,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         strokeWidth={FLOW_EDGE.strokeWidth}
         stroke={FLOW_EDGE.color}
         strokeLinecap="round"
-        style={{ 
-          pointerEvents: 'none',
-        }}
+        className={styles.mainPath}
       />
       
       {/* Filled arrowhead at target (always in original color) */}
@@ -392,9 +376,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         fill={FLOW_EDGE.color}
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ 
-          pointerEvents: 'none',
-        }}
+        className={styles.mainPath}
       />
       
       {/* Filled arrowhead at source - only for bidirectional (always in original color) */}
@@ -406,9 +388,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
           fill={FLOW_EDGE.color}
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ 
-            pointerEvents: 'none',
-          }}
+          className={styles.mainPath}
         />
       )}
       
@@ -422,7 +402,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
               fill="#f5f5f5"
               stroke={selected || isDraggingCloud === 'target' ? '#3b82f6' : '#999999'}
               strokeWidth={1.5}
-              style={{ pointerEvents: 'none' }}
+              className={styles.cloud}
             />
           </g>
           {/* Invisible hitbox for dragging - on top of everything */}
@@ -432,7 +412,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
             width={CLOUD_HITBOX_SIZE}
             height={CLOUD_HITBOX_SIZE}
             fill="transparent"
-            style={{ cursor: isDraggingCloud === 'target' ? 'grabbing' : 'grab', pointerEvents: 'all' }}
+            className={`${styles.cloudHitbox} ${isDraggingCloud === 'target' ? styles.grabbing : styles.grab}`}
             onPointerDown={handleCloudPointerDown('target')}
           />
         </>
@@ -448,7 +428,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
               fill="#f5f5f5"
               stroke={selected || isDraggingCloud === 'source' ? '#3b82f6' : '#999999'}
               strokeWidth={1.5}
-              style={{ pointerEvents: 'none' }}
+              className={styles.cloud}
             />
           </g>
           {/* Invisible hitbox for dragging - on top of everything */}
@@ -458,7 +438,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
             width={CLOUD_HITBOX_SIZE}
             height={CLOUD_HITBOX_SIZE}
             fill="transparent"
-            style={{ cursor: isDraggingCloud === 'source' ? 'grabbing' : 'grab', pointerEvents: 'all' }}
+            className={`${styles.cloudHitbox} ${isDraggingCloud === 'source' ? styles.grabbing : styles.grab}`}
             onPointerDown={handleCloudPointerDown('source')}
           />
         </>
@@ -477,17 +457,14 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
             stroke="white"
             strokeWidth={2}
             rx={3}
-            style={{ pointerEvents: 'none' }}
+            className={styles.labelBg}
           />
           <text
             x={midX}
             y={midY - 15}
             textAnchor="middle"
-            style={{
-              fontSize: '12px',
-              fill: FLOW_EDGE.color,
-              pointerEvents: 'none',
-            }}
+            fill={FLOW_EDGE.color}
+            className={styles.labelText}
           >
             {label}
           </text>

@@ -19,6 +19,7 @@ import {
 
 import '@xyflow/react/dist/style.css';
 import './App.css';
+import styles from './App.module.css';
 
 import { nodeTypes } from './components/nodes';
 import { LinkEdge, FlowEdge } from './components/edges';
@@ -358,39 +359,15 @@ function Flow() {
   );
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
+    <div className={styles.layout}>
       <Sidebar />
-      <div
-        ref={reactFlowWrapper}
-        style={{ flex: 1, height: '100%', position: 'relative' }}
-      >
+      <div ref={reactFlowWrapper} className={styles.canvasWrapper}>
         {/* Connection mode toggle button */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            zIndex: 10,
-            display: 'flex',
-            gap: 8,
-            background: 'white',
-            padding: '8px 12px',
-            borderRadius: 8,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-          }}
-        >
-          <span style={{ fontSize: 14, fontWeight: 500 }}>Connection:</span>
+        <div className={styles.connectionModeToggle}>
+          <span className={styles.toggleLabel}>Connection:</span>
           <button
             onClick={handleToggleConnectionMode}
-            style={{
-              padding: '4px 12px',
-              borderRadius: 4,
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              background: connectionMode === 'link' ? '#666666' : '#5b9bd5',
-              color: 'white',
-            }}
+            className={`${styles.toggleButton} ${connectionMode === 'link' ? styles.toggleButtonLink : styles.toggleButtonFlow}`}
           >
             {connectionMode === 'link' ? '--- Link' : '═══ Flow'}
           </button>

@@ -7,6 +7,7 @@ import {
   LINK_EDGE,
 } from '../../constants';
 import { selectHighlightedLoop } from '../../store/slices/uiSlice';
+import styles from './LinkEdge.module.css';
 
 export type UpdateEdgeData = (edgeId: string, data: Partial<LinkEdgeData>) => void;
 
@@ -103,7 +104,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
         strokeWidth={HITBOX_WIDTH}
         stroke="transparent"
         fill="none"
-        style={{ cursor: 'pointer' }}
+        className={styles.hitbox}
       />
       
       {/* Outline layer - drawn first (underneath) when highlighted or selected */}
@@ -117,10 +118,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
             fill="none"
             strokeDasharray={LINK_EDGE.dashArray}
             strokeLinecap="round"
-            style={{ 
-              pointerEvents: 'none',
-              opacity: 0.6,
-            }}
+            className={styles.outline}
           />
           
           {/* Outline for arrow at target */}
@@ -131,10 +129,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
-            style={{ 
-              pointerEvents: 'none',
-              opacity: 0.6,
-            }}
+            className={styles.outline}
           />
           
           {/* Outline for arrow at source - only for bidirectional */}
@@ -146,10 +141,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
-              style={{ 
-                pointerEvents: 'none',
-                opacity: 0.6,
-              }}
+              className={styles.outline}
             />
           )}
         </>
@@ -158,17 +150,14 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
       {/* Main edge path - dashed line for Link (always in original color) */}
       <path
         id={id}
-        className="react-flow__edge-path"
+        className={`react-flow__edge-path ${styles.mainPath}`}
         d={edgePath}
         strokeWidth={LINK_EDGE.strokeWidth}
         stroke={LINK_EDGE.color}
         fill="none"
         strokeDasharray={LINK_EDGE.dashArray}
         strokeLinecap="round"
-        style={{ 
-          ...style, 
-          pointerEvents: 'none',
-        }}
+        style={style}
       />
       
       {/* Arrow at target (always in original color) */}
@@ -179,9 +168,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
-        style={{ 
-          pointerEvents: 'none',
-        }}
+        className={styles.mainPath}
       />
       
       {/* Arrow at source - only for bidirectional (always in original color) */}
@@ -193,9 +180,7 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ 
-            pointerEvents: 'none',
-          }}
+          className={styles.mainPath}
         />
       )}
       
@@ -212,17 +197,14 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
             stroke="white"
             strokeWidth={2}
             rx={3}
-            style={{ pointerEvents: 'none' }}
+            className={styles.labelBg}
           />
           <text
             x={midX}
             y={midY - 10}
             textAnchor="middle"
-            style={{
-              fontSize: '12px',
-              fill: LINK_EDGE.color,
-              pointerEvents: 'none',
-            }}
+            fill={LINK_EDGE.color}
+            className={styles.labelText}
           >
             {label}
           </text>
