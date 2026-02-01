@@ -42,11 +42,14 @@ export const diagramSlice = createSlice({
       }
     },
     removeNode: (state, action: PayloadAction<string>) => {
-      state.nodes = state.nodes.filter(n => n.id !== action.payload);
+      const nodeId = action.payload;
+      state.nodes = state.nodes.filter(n => n.id !== nodeId);
       // Also remove connected edges
       state.edges = state.edges.filter(
-        e => e.source !== action.payload && e.target !== action.payload
+        e => e.source !== nodeId && e.target !== nodeId
       );
+      // Clear selection if this node was selected
+      state.selectedNodeIds = state.selectedNodeIds.filter(id => id !== nodeId);
     },
     
     // Edge operations
@@ -96,7 +99,10 @@ export const diagramSlice = createSlice({
       }
     },
     removeEdge: (state, action: PayloadAction<string>) => {
-      state.edges = state.edges.filter(e => e.id !== action.payload);
+      const edgeId = action.payload;
+      state.edges = state.edges.filter(e => e.id !== edgeId);
+      // Clear selection if this edge was selected
+      state.selectedEdgeIds = state.selectedEdgeIds.filter(id => id !== edgeId);
     },
     
     // Reverse edge direction (swap source and target)
@@ -140,10 +146,34 @@ export const diagramSlice = createSlice({
     
     // React Flow change adapters
     onNodesChange: (state, action: PayloadAction<NodeChange<CLDNode>[]>) => {
+      // Check for removed nodes to clear selection
+      const removedNodeIds = action.payload
+        .filter(change => change.type === 'remove')
+        .map(change => change.id);
+      
       state.nodes = applyNodeChanges(action.payload, state.nodes) as CLDNode[];
+      
+      // Clear selection for removed nodes
+      if (removedNodeIds.length > 0) {
+        state.selectedNodeIds = state.selectedNodeIds.filter(
+          id => !removedNodeIds.includes(id)
+        );
+      }
     },
     onEdgesChange: (state, action: PayloadAction<EdgeChange<CLDEdge>[]>) => {
+      // Check for removed edges to clear selection
+      const removedEdgeIds = action.payload
+        .filter(change => change.type === 'remove')
+        .map(change => change.id);
+      
       state.edges = applyEdgeChanges(action.payload, state.edges) as CLDEdge[];
+      
+      // Clear selection for removed edges
+      if (removedEdgeIds.length > 0) {
+        state.selectedEdgeIds = state.selectedEdgeIds.filter(
+          id => !removedEdgeIds.includes(id)
+        );
+      }
     },
     
     // Selection
