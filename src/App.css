@@ -19,16 +19,6 @@ body {
   transition: none !important;
 }
 
-.react-flow__edge-path {
-  stroke: #1a1a1a;
-  stroke-width: 1.5;
-}
-
-.react-flow__edge-path:hover {
-  stroke: #6366f1;
-  stroke-width: 2;
-}
-
 .react-flow__handle {
   transition: all 0.2s ease;
 }
@@ -61,12 +51,7 @@ body {
   background-color: #ffffff;
 }
 
-/* Connection line styling while drawing */
-.react-flow__connection-path {
-  stroke: #1a1a1a;
-  stroke-width: 1.5;
-  stroke-dasharray: 5, 5;
-}
+/* Connection line styling is handled by DiagramCanvas connectionLineStyle prop */
 
 .react-flow__connection {
   pointer-events: none;

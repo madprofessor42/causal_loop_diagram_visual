@@ -3,6 +3,8 @@ import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { selectSelectedNodeId } from '../../store/slices/uiSlice';
 import { selectNodes, diagramActions } from '../../store/slices/diagramSlice';
 import type { StockNodeData, VariableNodeData } from '../../types';
+import { FormField } from '../ui/FormField';
+import { Badge } from '../ui/Badge';
 import styles from './NodePropertiesPanel.module.css';
 
 export function NodePropertiesPanel() {
@@ -99,85 +101,57 @@ export function NodePropertiesPanel() {
       </div>
       
       {/* Node type badge */}
-      <div className={`${styles.badge} ${isStock ? styles.badgeStock : styles.badgeVariable}`}>
+      <Badge variant={isStock ? 'stock' : 'variable'}>
         {isStock ? 'Stock' : 'Variable'}
-      </div>
+      </Badge>
       
       {/* Label field */}
-      <div className={styles.field}>
-        <label className={styles.label}>
-          Name
-        </label>
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => handleLabelChange(e.target.value)}
-          className={styles.input}
-        />
-      </div>
+      <FormField
+        label="Name"
+        value={label}
+        onChange={handleLabelChange}
+      />
       
       {/* Stock-specific fields */}
       {isStock && (
-        <div className={styles.field}>
-          <label className={styles.label}>
-            Initial Value
-          </label>
-          <input
-            type="number"
-            value={initialValue}
-            onChange={(e) => handleInitialValueChange(e.target.value)}
-            placeholder="0"
-            className={styles.input}
-          />
-        </div>
+        <FormField
+          label="Initial Value"
+          type="number"
+          value={initialValue}
+          onChange={handleInitialValueChange}
+          placeholder="0"
+        />
       )}
       
       {/* Variable-specific fields */}
       {!isStock && (
-        <div className={styles.field}>
-          <label className={styles.label}>
-            Formula / Value
-          </label>
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => handleValueChange(e.target.value)}
-            placeholder="e.g., 100 or [Stock1] * 0.5"
-            className={`${styles.input} ${styles.monospace}`}
-          />
-          <div className={styles.hint}>
-            Use [NodeName] to reference other nodes
-          </div>
-        </div>
+        <FormField
+          label="Formula / Value"
+          value={value}
+          onChange={handleValueChange}
+          placeholder="e.g., 100 or [Stock1] * 0.5"
+          hint="Use [NodeName] to reference other nodes"
+          monospace
+        />
       )}
       
       {/* Units field */}
-      <div className={styles.field}>
-        <label className={styles.label}>
-          Units
-        </label>
-        <input
-          type="text"
-          value={units}
-          onChange={(e) => handleUnitsChange(e.target.value)}
-          placeholder="e.g., people, kg, $"
-          className={styles.input}
-        />
-      </div>
+      <FormField
+        label="Units"
+        value={units}
+        onChange={handleUnitsChange}
+        placeholder="e.g., people, kg, $"
+      />
       
       {/* Notes field */}
-      <div className={styles.field}>
-        <label className={styles.label}>
-          Notes
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => handleNotesChange(e.target.value)}
-          placeholder="Add description or notes..."
-          rows={4}
-          className={styles.textarea}
-        />
-      </div>
+      <FormField
+        label="Notes"
+        type="textarea"
+        value={notes}
+        onChange={handleNotesChange}
+        placeholder="Add description or notes..."
+        rows={4}
+      />
       
       {/* Divider */}
       <div className={styles.divider} />

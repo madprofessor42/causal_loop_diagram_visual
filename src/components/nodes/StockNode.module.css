@@ -33,17 +33,17 @@
 /* Center handle indicator */
 .handleIndicator {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  background: rgba(34, 197, 94, 0.4);
-  border: 2px solid rgba(22, 163, 74, 0.6);
+  width: var(--handle-size);
+  height: var(--handle-size);
+  background: var(--handle-color);
+  border: var(--handle-border-width) solid var(--handle-border-color);
   border-radius: 50%;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  z-index: 15;
-  transition: all 0.15s ease;
+  z-index: var(--z-handle-indicator);
+  transition: var(--handle-transition);
 }
 
 .handleIndicator.active {
@@ -54,15 +54,15 @@
 /* Source handle */
 .handleSource {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: var(--handle-size);
+  height: var(--handle-size);
   background: transparent;
   border: none;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   cursor: crosshair;
-  z-index: 20;
+  z-index: var(--z-handle-source);
 }
 
 /* Target handle */
@@ -76,6 +76,6 @@
   top: 50%;
   transform: translate(-50%, -50%);
   border-radius: var(--radius-sm);
-  z-index: 10;
+  z-index: var(--z-handle-target);
 }
 

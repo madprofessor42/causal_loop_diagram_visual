@@ -42,7 +42,6 @@ export function GhostNode({ position }: GhostNodeProps) {
         top: screenY,
         width: scaledWidth,
         height: scaledHeight,
-        transform: 'translate(-50%, -50%)',
         borderRadius: isStock ? `${4 * zoom}px` : '50%',
         fontSize: `${14 * zoom}px`,
       }}

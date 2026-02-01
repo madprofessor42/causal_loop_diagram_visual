@@ -119,32 +119,12 @@ export function LoopsPanel() {
               {/* Loop metadata */}
               <div className={styles.loopMetadata}>
                 {cycle.length === 2 && (
-                  <span
-                    style={{
-                      padding: '2px 6px',
-                      backgroundColor: '#fef2f2',
-                      color: '#dc2626',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 500,
-                      border: '1px solid #fecaca',
-                    }}
-                  >
+                  <span className={`${styles.metadataBadge} ${styles.badgeDirectFeedback}`}>
                     Direct Feedback
                   </span>
                 )}
                 {cycle.length > 5 && (
-                  <span
-                    style={{
-                      padding: '2px 6px',
-                      backgroundColor: '#faf5ff',
-                      color: '#7c3aed',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 500,
-                      border: '1px solid #e9d5ff',
-                    }}
-                  >
+                  <span className={`${styles.metadataBadge} ${styles.badgeComplexLoop}`}>
                     Complex Loop
                   </span>
                 )}
@@ -156,18 +136,7 @@ export function LoopsPanel() {
 
       {/* Info box */}
       {cycles.length > 0 && (
-        <div
-          style={{
-            marginTop: '12px',
-            padding: '8px 10px',
-            backgroundColor: '#eff6ff',
-            borderRadius: '6px',
-            border: '1px solid #dbeafe',
-            fontSize: '11px',
-            color: '#1e40af',
-            lineHeight: 1.5,
-          }}
-        >
+        <div className={styles.infoBox}>
           <strong>💡 Tip:</strong> Feedback loops are fundamental to system dynamics. 
           They represent circular causality in your model.
         </div>

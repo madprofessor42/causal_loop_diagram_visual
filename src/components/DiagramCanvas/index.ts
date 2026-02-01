@@ -1,0 +1,2 @@
+export { DiagramCanvas } from './DiagramCanvas';
+

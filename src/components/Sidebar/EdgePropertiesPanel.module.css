@@ -89,3 +89,37 @@
   cursor: pointer;
 }
 
+.emptyState {
+  padding: var(--spacing-lg);
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+.infoText {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: var(--spacing-xs);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.sectionLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: var(--spacing-xs);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray-900);
+}
+

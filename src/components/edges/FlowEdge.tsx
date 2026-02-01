@@ -1,13 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore, useReactFlow, type EdgeProps } from '@xyflow/react';
-import { useSelector } from 'react-redux';
 import { getStraightEdgeParams } from '../../utils/edge';
-import type { FlowEdgeData, CLDEdge } from '../../types';
+import { useEdgeHighlight, useParallelEdges } from '../../hooks';
+import {
+  renderHitbox,
+  renderEdgeOutline,
+  renderEdgeLabel,
+  calculateArrowPoints,
+} from '../../utils/edgeRendering';
+import type { FlowEdgeData } from '../../types';
 import {
   ARROW_SIZE,
   FLOW_EDGE,
 } from '../../constants';
-import { selectHighlightedLoop } from '../../store/slices/uiSlice';
 import styles from './FlowEdge.module.css';
 
 export type UpdateEdgeData = (edgeId: string, data: Partial<FlowEdgeData>) => void;
@@ -28,9 +33,6 @@ const cloudPath = `
   Z
 `;
 
-// Offset for parallel edges between same nodes
-const PARALLEL_EDGE_OFFSET = 10;
-
 // Invisible hitbox width for easier clicking
 const HITBOX_WIDTH = 20;
 
@@ -48,23 +50,15 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   const targetNode = useStore((store) => store.nodeLookup.get(target));
   const { screenToFlowPosition } = useReactFlow();
   
-  // Check if this edge is highlighted as part of a loop
-  const highlightedLoop = useSelector(selectHighlightedLoop);
-  const isHighlighted = highlightedLoop?.edgeIds.includes(id);
+  // Use custom hook for highlight logic
+  const { highlightColor, shouldShowOutline, outlineWidth } = useEdgeHighlight(id, selected);
   
   // Dragging state
   const [isDraggingCloud, setIsDraggingCloud] = useState<'source' | 'target' | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   
-  // Check if there's a link edge between same nodes
-  const hasParallelLink = useStore((store) => {
-    const edges = Array.from(store.edges.values()) as CLDEdge[];
-    return edges.some(e => 
-      e.type === 'link' && 
-      ((e.source === source && e.target === target) || 
-       (e.source === target && e.target === source))
-    );
-  });
+  // Calculate offset for parallel edges (if there's a Link edge between same nodes)
+  const { offset: parallelOffset } = useParallelEdges(id, source, target, 'flow');
 
 
   const edgeData = data as FlowEdgeData | undefined;
@@ -133,8 +127,9 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   }
   
   // Get node-based positions if not fixed
+  // Pass parallelOffset to correctly calculate edge points on node boundaries
   if (sourceNode && targetNode && !fixedSourcePos && !fixedTargetPos) {
-    const params = getStraightEdgeParams(sourceNode, targetNode);
+    const params = getStraightEdgeParams(sourceNode, targetNode, parallelOffset);
     sx = params.sx;
     sy = params.sy;
     tx = params.tx;
@@ -216,20 +211,15 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
     return null;
   }
 
-  // Calculate angle and perpendicular offset direction
+  // Calculate angle for arrow and valve direction
   const angle = Math.atan2(ty - sy, tx - sx);
   const perpAngle = angle + Math.PI / 2;
   
-  // Apply offset in opposite direction from LinkEdge if there's a parallel link edge
-  const offset = hasParallelLink ? -PARALLEL_EDGE_OFFSET : 0;
-  const offsetX = offset * Math.cos(perpAngle);
-  const offsetY = offset * Math.sin(perpAngle);
-  
-  // Offset start and end points
-  const startX = sx + offsetX;
-  const startY = sy + offsetY;
-  const endX = tx + offsetX;
-  const endY = ty + offsetY;
+  // Start and end points are already correctly positioned from getStraightEdgeParams
+  const startX = sx;
+  const startY = sy;
+  const endX = tx;
+  const endY = ty;
 
   // Straight line path (with offset)
   const edgePath = `M ${startX},${startY} L ${endX},${endY}`;
@@ -241,32 +231,18 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   // Arrow size for flow
   const flowArrowSize = ARROW_SIZE * 1.5;
 
-  // Arrow at target (pointing towards target)
-  const targetArrowAngle1 = angle + Math.PI * 0.8;
-  const targetArrowAngle2 = angle - Math.PI * 0.8;
-  
-  // Offset arrow back if there's a cloud at target
+  // Offset arrow back if there's a cloud at target/source
   const targetArrowOffset = hasCloudAtTarget ? CLOUD_SIZE / 2 + 5 : 0;
   const arrowTx = endX - targetArrowOffset * Math.cos(angle);
   const arrowTy = endY - targetArrowOffset * Math.sin(angle);
   
-  const targetArrowX1 = arrowTx + flowArrowSize * Math.cos(targetArrowAngle1);
-  const targetArrowY1 = arrowTy + flowArrowSize * Math.sin(targetArrowAngle1);
-  const targetArrowX2 = arrowTx + flowArrowSize * Math.cos(targetArrowAngle2);
-  const targetArrowY2 = arrowTy + flowArrowSize * Math.sin(targetArrowAngle2);
-
-  // Arrow at source (pointing towards source) - for bidirectional
-  const sourceArrowAngle1 = angle + Math.PI + Math.PI * 0.8;
-  const sourceArrowAngle2 = angle + Math.PI - Math.PI * 0.8;
-  
   const sourceArrowOffset = hasCloudAtSource ? CLOUD_SIZE / 2 + 5 : 0;
   const arrowSx = startX + sourceArrowOffset * Math.cos(angle);
   const arrowSy = startY + sourceArrowOffset * Math.sin(angle);
-  
-  const sourceArrowX1 = arrowSx + flowArrowSize * Math.cos(sourceArrowAngle1);
-  const sourceArrowY1 = arrowSy + flowArrowSize * Math.sin(sourceArrowAngle1);
-  const sourceArrowX2 = arrowSx + flowArrowSize * Math.cos(sourceArrowAngle2);
-  const sourceArrowY2 = arrowSy + flowArrowSize * Math.sin(sourceArrowAngle2);
+
+  // Calculate arrow points using utility function
+  const targetArrow = calculateArrowPoints(arrowTx, arrowTy, angle, flowArrowSize);
+  const sourceArrow = calculateArrowPoints(arrowSx, arrowSy, angle, flowArrowSize, true);
 
   // Valve indicator at midpoint (small perpendicular line)
   const valveSize = FLOW_EDGE.valveSize;
@@ -277,34 +253,17 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
 
   // Label
   const label = edgeData?.label;
-  
-  // Determine highlight/selection state
-  const highlightColor = isHighlighted ? '#22c55e' : (selected ? '#3b82f6' : null);
-  const outlineWidth = FLOW_EDGE.strokeWidth + 6; // Thicker for outline effect
 
   return (
     <g className="react-flow__edge">
       {/* Invisible wide path for easier clicking */}
-      <path
-        d={edgePath}
-        strokeWidth={HITBOX_WIDTH}
-        stroke="transparent"
-        fill="none"
-        className={styles.hitbox}
-      />
+      {renderHitbox(edgePath, HITBOX_WIDTH, styles.hitbox)}
       
       {/* Outline layer - drawn first (underneath) when highlighted or selected */}
-      {highlightColor && (
+      {shouldShowOutline && highlightColor && (
         <>
           {/* Outline for main edge path */}
-          <path
-            d={edgePath}
-            strokeWidth={outlineWidth}
-            stroke={highlightColor}
-            fill="none"
-            strokeLinecap="round"
-            className={styles.outline}
-          />
+          {renderEdgeOutline(edgePath, true, highlightColor, outlineWidth, undefined, styles.outline)}
           
           {/* Outline for valve indicator */}
           <line
@@ -320,7 +279,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
           
           {/* Outline for arrowhead at target */}
           <path
-            d={`M ${targetArrowX1},${targetArrowY1} L ${arrowTx},${arrowTy} L ${targetArrowX2},${targetArrowY2} Z`}
+            d={`M ${targetArrow.x1},${targetArrow.y1} L ${arrowTx},${arrowTy} L ${targetArrow.x2},${targetArrow.y2} Z`}
             strokeWidth={3}
             stroke={highlightColor}
             fill="none"
@@ -332,7 +291,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
           {/* Outline for arrowhead at source - only for bidirectional */}
           {isBidirectional && (
             <path
-              d={`M ${sourceArrowX1},${sourceArrowY1} L ${arrowSx},${arrowSy} L ${sourceArrowX2},${sourceArrowY2} Z`}
+              d={`M ${sourceArrow.x1},${sourceArrow.y1} L ${arrowSx},${arrowSy} L ${sourceArrow.x2},${sourceArrow.y2} Z`}
               strokeWidth={3}
               stroke={highlightColor}
               fill="none"
@@ -350,10 +309,10 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         className={`react-flow__edge-path ${styles.mainPath}`}
         d={edgePath}
         strokeWidth={FLOW_EDGE.strokeWidth}
-        stroke={FLOW_EDGE.color}
+        stroke={FLOW_EDGE.lineColor}
         fill="none"
         strokeLinecap="round"
-        style={style}
+        style={{ ...style, stroke: FLOW_EDGE.lineColor }}
       />
       
       {/* Valve indicator at midpoint (always in original color) */}
@@ -370,7 +329,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
       
       {/* Filled arrowhead at target (always in original color) */}
       <path
-        d={`M ${targetArrowX1},${targetArrowY1} L ${arrowTx},${arrowTy} L ${targetArrowX2},${targetArrowY2} Z`}
+        d={`M ${targetArrow.x1},${targetArrow.y1} L ${arrowTx},${arrowTy} L ${targetArrow.x2},${targetArrow.y2} Z`}
         strokeWidth={1}
         stroke={FLOW_EDGE.color}
         fill={FLOW_EDGE.color}
@@ -382,7 +341,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
       {/* Filled arrowhead at source - only for bidirectional (always in original color) */}
       {isBidirectional && (
         <path
-          d={`M ${sourceArrowX1},${sourceArrowY1} L ${arrowSx},${arrowSy} L ${sourceArrowX2},${sourceArrowY2} Z`}
+          d={`M ${sourceArrow.x1},${sourceArrow.y1} L ${arrowSx},${arrowSy} L ${sourceArrow.x2},${sourceArrow.y2} Z`}
           strokeWidth={1}
           stroke={FLOW_EDGE.color}
           fill={FLOW_EDGE.color}
@@ -445,33 +404,10 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
       )}
       
       {/* Label if present */}
-      {label && (
-        <>
-          {/* White background for label text */}
-          <rect
-            x={midX - (label.length * 3.5 + 6)}
-            y={midY - 25}
-            width={label.length * 7 + 12}
-            height={18}
-            fill="white"
-            stroke="white"
-            strokeWidth={2}
-            rx={3}
-            className={styles.labelBg}
-          />
-          <text
-            x={midX}
-            y={midY - 15}
-            textAnchor="middle"
-            fill={FLOW_EDGE.color}
-            className={styles.labelText}
-          >
-            {label}
-          </text>
-        </>
-      )}
+      {renderEdgeLabel(label, midX, midY, FLOW_EDGE.color, styles.labelText, styles.labelBg)}
     </g>
   );
 }
 
+// Export without memo to ensure re-renders when parallel edges change
 export default FlowEdge;

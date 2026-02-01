@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Handle, Position, NodeResizer, useConnection, type NodeProps } from '@xyflow/react';
-import { useSelector } from 'react-redux';
+import { memo } from 'react';
+import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/react';
 import type { StockNodeData } from '../../types';
-import { selectHighlightedLoop } from '../../store/slices/uiSlice';
+import { useNodeHighlight, useNodeHandles } from '../../hooks';
+import { RESIZER_CONFIG } from '../../constants';
 import styles from './StockNode.module.css';
 
 /**
@@ -12,16 +12,10 @@ import styles from './StockNode.module.css';
  * - Source: Small center point - must precisely hover to start connection
  * - Target: Entire node area - active only when dragging a connection
  */
-export function StockNode({ data, selected, id }: NodeProps) {
-  const [isHoveringHandle, setIsHoveringHandle] = useState(false);
-  
-  // Check if there's a connection being drawn
-  const connection = useConnection();
-  const isConnecting = connection.inProgress;
-
-  // Check if this node is highlighted as part of a loop
-  const highlightedLoop = useSelector(selectHighlightedLoop);
-  const isHighlighted = highlightedLoop?.nodeIds.includes(id);
+function StockNodeComponent({ data, selected, id }: NodeProps) {
+  // Use custom hooks for highlight and handles logic
+  const { isHighlighted } = useNodeHighlight(id);
+  const { isHoveringHandle, setIsHoveringHandle, isConnecting } = useNodeHandles('stock');
 
   const nodeData = data as StockNodeData;
 
@@ -30,13 +24,7 @@ export function StockNode({ data, selected, id }: NodeProps) {
       {/* Resize handles - only visible when node is selected */}
       <NodeResizer
         isVisible={selected}
-        minWidth={80}
-        minHeight={50}
-        handleStyle={{
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-        }}
+        {...RESIZER_CONFIG}
       />
       
       {/* The visual rectangle */}
@@ -68,3 +56,6 @@ export function StockNode({ data, selected, id }: NodeProps) {
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export const StockNode = memo(StockNodeComponent);

@@ -2,6 +2,8 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { selectSelectedEdgeId, uiActions } from '../../store/slices/uiSlice';
 import { selectEdges, diagramActions } from '../../store/slices/diagramSlice';
 import type { CLDEdge, FlowEdgeData, LinkEdgeData } from '../../types';
+import { FormField } from '../ui/FormField';
+import { Badge } from '../ui/Badge';
 import styles from './EdgePropertiesPanel.module.css';
 
 /**
@@ -16,7 +18,7 @@ export function EdgePropertiesPanel() {
   
   if (!selectedEdge) {
     return (
-      <div style={{ padding: 16, color: '#6b7280', fontSize: 13 }}>
+      <div className={styles.emptyState}>
         Click on an edge to edit its properties
       </div>
     );
@@ -61,18 +63,18 @@ export function EdgePropertiesPanel() {
       
       {/* Edge info */}
       <div className={styles.info}>
-        <div>ID: {selectedEdge.id.slice(0, 20)}...</div>
-        <div>Type: {selectedEdge.type}</div>
+        <Badge variant="neutral">{isFlow ? 'Flow' : 'Link'}</Badge>
+        <div className={styles.infoText}>ID: {selectedEdge.id.slice(0, 20)}...</div>
       </div>
       
       {/* Direction controls */}
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: '#374151', marginBottom: 8 }}>
+      <div className={styles.section}>
+        <div className={styles.sectionLabel}>
           Direction
         </div>
         
         {/* Bidirectional toggle */}
-        <label className={styles.label}>
+        <label className={styles.checkboxLabel}>
           <input
             type="checkbox"
             checked={isBidirectional}
@@ -84,40 +86,27 @@ export function EdgePropertiesPanel() {
         
         {/* Reverse direction button */}
         {!isBidirectional && (
-          <button onClick={handleReverseDirection} className={styles.button} style={{ marginTop: 8 }}>
+          <button onClick={handleReverseDirection} className={styles.button}>
             ⇄ Reverse Direction
           </button>
         )}
       </div>
       
       {/* Label input */}
-      <div>
-        <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 6 }}>
-          Label
-        </label>
-        <input
-          type="text"
-          value={edgeData?.label ?? ''}
-          onChange={(e) => {
-            dispatch(diagramActions.updateEdgeData({
-              id: selectedEdge.id,
-              data: { label: e.target.value || undefined },
-            }));
-          }}
-          placeholder="Enter label..."
-          style={{
-            padding: '8px 12px',
-            borderRadius: 4,
-            border: '1px solid #d1d5db',
-            fontSize: 13,
-            width: '100%',
-            boxSizing: 'border-box',
-          }}
-        />
-      </div>
+      <FormField
+        label="Label"
+        value={edgeData?.label ?? ''}
+        onChange={(value) => {
+          dispatch(diagramActions.updateEdgeData({
+            id: selectedEdge.id,
+            data: { label: value || undefined },
+          }));
+        }}
+        placeholder="Enter label..."
+      />
       
       {/* Delete button */}
-      <button onClick={handleDelete} className={`${styles.button} ${styles.buttonDanger}`} style={{ marginTop: 8 }}>
+      <button onClick={handleDelete} className={`${styles.button} ${styles.buttonDanger}`}>
         Delete Edge
       </button>
     </div>

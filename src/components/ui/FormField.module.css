@@ -1,0 +1,52 @@
+/* FormField Component CSS Module */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-700);
+}
+
+.input {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: white;
+  color: var(--gray-900);
+}
+
+.input:focus {
+  border-color: var(--blue-500);
+}
+
+.input:disabled {
+  background-color: var(--gray-50);
+  color: var(--gray-500);
+  cursor: not-allowed;
+}
+
+.textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 60px;
+}
+
+.monospace {
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--gray-500);
+  line-height: 1.4;
+}
+

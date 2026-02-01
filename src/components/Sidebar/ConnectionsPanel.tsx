@@ -1,6 +1,7 @@
 import { useAppSelector } from '../../store/hooks';
 import { selectNodes, selectEdges } from '../../store/slices/diagramSlice';
 import panelStyles from './Panel.module.css';
+import styles from './ConnectionsPanel.module.css';
 
 export function ConnectionsPanel() {
   const nodes = useAppSelector(selectNodes);
@@ -30,12 +31,9 @@ export function ConnectionsPanel() {
     return 'Link';
   };
 
-  // Helper to get edge color
-  const getEdgeColor = (edge: typeof edges[0]) => {
-    if (edge.type === 'flow') {
-      return '#3b82f6'; // Blue for flow
-    }
-    return '#6b7280'; // Gray for link
+  // Helper to get arrow CSS class
+  const getArrowClass = (edge: typeof edges[0]) => {
+    return edge.type === 'flow' ? styles.arrowFlow : styles.arrowLink;
   };
 
   // Filter out cloud edges (edges to/from nowhere)
@@ -70,45 +68,24 @@ export function ConnectionsPanel() {
           const targetLabel = nodeLabels.get(edge.target) || edge.target;
           const arrowSymbol = getArrowSymbol(edge);
           const edgeType = getEdgeTypeLabel(edge);
-          const edgeColor = getEdgeColor(edge);
+          const arrowClass = getArrowClass(edge);
           const isBidirectional = edge.data?.bidirectional;
 
           return (
             <div key={edge.id} className={panelStyles.item}>
               {/* Connection visualization */}
-              <div className={panelStyles.itemRow} style={{ marginBottom: '4px' }}>
+              <div className={`${panelStyles.itemRow} ${styles.connectionRow}`}>
                 <span
-                  style={{
-                    fontWeight: 500,
-                    color: '#111827',
-                    maxWidth: '35%',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className={styles.nodeLabel}
                   title={sourceLabel}
                 >
                   {sourceLabel}
                 </span>
-                <span
-                  style={{
-                    color: edgeColor,
-                    fontSize: '16px',
-                    fontWeight: 'bold',
-                    flexShrink: 0,
-                  }}
-                >
+                <span className={`${styles.arrowSymbol} ${arrowClass}`}>
                   {arrowSymbol}
                 </span>
                 <span
-                  style={{
-                    fontWeight: 500,
-                    color: '#111827',
-                    maxWidth: '35%',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
+                  className={styles.nodeLabel}
                   title={targetLabel}
                 >
                   {targetLabel}
@@ -116,7 +93,7 @@ export function ConnectionsPanel() {
               </div>
 
               {/* Edge type badge */}
-              <div className={panelStyles.itemRow} style={{ marginTop: '4px' }}>
+              <div className={`${panelStyles.itemRow} ${styles.badgesRow}`}>
                 <span className={`${panelStyles.badge} ${edge.type === 'flow' ? panelStyles.badgeFlow : panelStyles.badgeLink}`}>
                   {edgeType}
                 </span>
@@ -129,14 +106,7 @@ export function ConnectionsPanel() {
 
               {/* Optional label */}
               {edge.data?.label && (
-                <div
-                  style={{
-                    marginTop: '4px',
-                    color: '#6b7280',
-                    fontSize: '11px',
-                    fontStyle: 'italic',
-                  }}
-                >
+                <div className={styles.edgeLabel}>
                   "{edge.data.label}"
                 </div>
               )}
