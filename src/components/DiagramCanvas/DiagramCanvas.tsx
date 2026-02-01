@@ -8,12 +8,13 @@ import {
   ConnectionMode,
   ConnectionLineType,
   useReactFlow,
+  useOnSelectionChange,
   type OnConnect,
   type OnConnectStart,
   type Connection,
   type NodeChange,
   type EdgeChange,
-  type Edge,
+  type OnSelectionChangeFunc,
 } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
@@ -43,8 +44,6 @@ import {
   selectIsDragging,
   selectGhostPosition,
   selectConnectionMode,
-  selectSelectedEdgeId,
-  selectSelectedNodeId,
 } from '../../store/slices/uiSlice';
 
 export function DiagramCanvas() {
@@ -54,8 +53,6 @@ export function DiagramCanvas() {
   const isDragging = useAppSelector(selectIsDragging);
   const ghostPosition = useAppSelector(selectGhostPosition);
   const connectionMode = useAppSelector(selectConnectionMode);
-  const selectedEdgeId = useAppSelector(selectSelectedEdgeId);
-  const selectedNodeId = useAppSelector(selectSelectedNodeId);
   
   const { screenToFlowPosition } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -63,6 +60,33 @@ export function DiagramCanvas() {
   // Store source node info for cloud edge creation
   const sourceNodeIdRef = useRef<string | null>(null);
   const sourceNodeTypeRef = useRef<string | null>(null);
+  
+  // Sync React Flow selection with Redux/UI state
+  // When user selects nodes/edges via shift+drag or click, update UI selection
+  const onSelectionChange: OnSelectionChangeFunc = useCallback(
+    ({ nodes: selectedNodes, edges: selectedEdges }) => {
+      // Update UI selection based on what's selected
+      // For single selection, update the sidebar
+      if (selectedNodes.length === 1 && selectedEdges.length === 0) {
+        dispatch(uiActions.setSelectedNode(selectedNodes[0].id));
+      } else if (selectedEdges.length === 1 && selectedNodes.length === 0) {
+        dispatch(uiActions.setSelectedEdge(selectedEdges[0].id));
+      } else if (selectedNodes.length === 0 && selectedEdges.length === 0) {
+        // Nothing selected - clear UI selection
+        dispatch(uiActions.setSelectedNode(null));
+        dispatch(uiActions.setSelectedEdge(null));
+      } else {
+        // Multiple selection - clear single item editing in sidebar
+        // (could extend UI to show multi-selection info)
+        dispatch(uiActions.setSelectedNode(null));
+        dispatch(uiActions.setSelectedEdge(null));
+      }
+    },
+    [dispatch]
+  );
+  
+  // Register selection change handler
+  useOnSelectionChange({ onChange: onSelectionChange });
   
   // React Flow change handlers -> Redux
   const onNodesChange = useCallback(
@@ -269,61 +293,18 @@ export function DiagramCanvas() {
     strokeDasharray: connectionMode === 'link' ? LINK_EDGE.dashArray : '5,5',
   }), [connectionMode]);
   
-  // Handle edge click - select edge for editing in sidebar
-  const onEdgeClick = useCallback(
-    (_event: React.MouseEvent, edge: Edge) => {
-      dispatch(uiActions.setSelectedEdge(edge.id));
-    },
-    [dispatch]
-  );
-  
-  // Handle node click - select node for editing in sidebar
-  const onNodeClick = useCallback(
-    (_event: React.MouseEvent, node: CLDNode) => {
-      dispatch(uiActions.setSelectedNode(node.id));
-    },
-    [dispatch]
-  );
-  
-  // Handle pane click - deselect edge and node
-  const onPaneClick = useCallback(() => {
-    dispatch(uiActions.setSelectedEdge(null));
-    dispatch(uiActions.setSelectedNode(null));
-  }, [dispatch]);
-
-  // Memoize nodes with selection to avoid creating new objects on every render
-  const nodesWithSelection = useMemo(
-    () => nodes.map(n => ({
-      ...n,
-      selected: n.id === selectedNodeId,
-    })),
-    [nodes, selectedNodeId]
-  );
-
-  // Memoize edges with selection to avoid creating new objects on every render
-  const edgesWithSelection = useMemo(
-    () => edges.map(e => ({
-      ...e,
-      selected: e.id === selectedEdgeId,
-    })),
-    [edges, selectedEdgeId]
-  );
-
   return (
     <div ref={reactFlowWrapper} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <ConnectionModeToggle />
       
       <ReactFlow
-        nodes={nodesWithSelection}
-        edges={edgesWithSelection}
+        nodes={nodes}
+        edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnectStart={onConnectStart}
         onConnect={onConnect}
         onConnectEnd={onConnectEnd}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onPaneClick={onPaneClick}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
@@ -335,6 +316,7 @@ export function DiagramCanvas() {
         fitView
         minZoom={0.5}
         maxZoom={2}
+        selectNodesOnDrag={false}
       >
         <Controls />
         <MiniMap
