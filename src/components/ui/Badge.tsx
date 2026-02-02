@@ -6,7 +6,7 @@ import styles from './Badge.module.css';
  * Используется для отображения типов нод (Stock/Variable) и типов edges (Flow/Link)
  */
 
-export type BadgeVariant = 'stock' | 'variable' | 'neutral';
+export type BadgeVariant = 'stock' | 'variable' | 'flow' | 'neutral';
 
 export interface BadgeProps {
   children: ReactNode;

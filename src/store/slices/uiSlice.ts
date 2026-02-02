@@ -10,6 +10,16 @@ interface DragState {
   ghostPosition: { x: number; y: number } | null;
 }
 
+/** State for connection being created FROM a Flow edge */
+interface FlowConnectionState {
+  /** Source Flow edge ID */
+  flowEdgeId: string;
+  /** Current cursor position in flow coordinates (for edge creation) */
+  cursorPosition: { x: number; y: number };
+  /** Current cursor position in screen coordinates (for preview rendering) */
+  screenPosition: { x: number; y: number };
+}
+
 interface UIState {
   editingMode: EditingMode;
   sidebarPanel: SidebarPanel;
@@ -29,6 +39,8 @@ interface UIState {
     nodeIds: string[];
     edgeIds: string[];
   } | null;
+  /** Connection being created from a Flow edge (custom handling) */
+  flowConnection: FlowConnectionState | null;
 }
 
 const initialState: UIState = {
@@ -46,6 +58,7 @@ const initialState: UIState = {
   selectedNodeId: null,
   sidebarWidth: 280, // Default width in pixels
   highlightedLoop: null,
+  flowConnection: null,
 };
 
 export const uiSlice = createSlice({
@@ -119,6 +132,19 @@ export const uiSlice = createSlice({
     clearHighlightedLoop: (state) => {
       state.highlightedLoop = null;
     },
+    // Flow connection (custom connection from Flow edge)
+    startFlowConnection: (state, action: PayloadAction<{ flowEdgeId: string; cursorPosition: { x: number; y: number }; screenPosition: { x: number; y: number } }>) => {
+      state.flowConnection = action.payload;
+    },
+    updateFlowConnectionCursor: (state, action: PayloadAction<{ cursorPosition: { x: number; y: number }; screenPosition: { x: number; y: number } }>) => {
+      if (state.flowConnection) {
+        state.flowConnection.cursorPosition = action.payload.cursorPosition;
+        state.flowConnection.screenPosition = action.payload.screenPosition;
+      }
+    },
+    endFlowConnection: (state) => {
+      state.flowConnection = null;
+    },
   },
 });
 
@@ -139,3 +165,4 @@ export const selectSelectedEdgeId = (state: { ui: UIState }) => state.ui.selecte
 export const selectSelectedNodeId = (state: { ui: UIState }) => state.ui.selectedNodeId;
 export const selectSidebarWidth = (state: { ui: UIState }) => state.ui.sidebarWidth;
 export const selectHighlightedLoop = (state: { ui: UIState }) => state.ui.highlightedLoop;
+export const selectFlowConnection = (state: { ui: UIState }) => state.ui.flowConnection;

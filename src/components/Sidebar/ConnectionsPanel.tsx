@@ -1,5 +1,6 @@
 import { useAppSelector } from '../../store/hooks';
 import { selectNodes, selectEdges } from '../../store/slices/diagramSlice';
+import type { LinkEdgeData, FlowEdgeData } from '../../types';
 import panelStyles from './Panel.module.css';
 import styles from './ConnectionsPanel.module.css';
 
@@ -10,6 +11,16 @@ export function ConnectionsPanel() {
   // Create a map of node IDs to labels for quick lookup
   const nodeLabels = new Map(
     nodes.map(node => [node.id, node.data.label || node.id])
+  );
+  
+  // Create a map of Flow edge IDs to labels for Links that target Flow edges
+  const flowEdgeLabels = new Map(
+    edges
+      .filter(e => e.type === 'flow')
+      .map(e => {
+        const flowData = e.data as FlowEdgeData | undefined;
+        return [e.id, flowData?.name || flowData?.label || `Flow`];
+      })
   );
 
   // Helper to get arrow symbol based on edge type and direction
@@ -64,8 +75,54 @@ export function ConnectionsPanel() {
       {/* Connections list */}
       <div className={panelStyles.panelSection}>
         {regularEdges.map(edge => {
-          const sourceLabel = nodeLabels.get(edge.source) || edge.source;
-          const targetLabel = nodeLabels.get(edge.target) || edge.target;
+          // For Links that target or source from Flow edges
+          const linkData = edge.data as LinkEdgeData | undefined;
+          const isLinkToFlow = edge.type === 'link' && linkData?.targetIsFlowEdge && linkData?.targetFlowEdgeId;
+          const isLinkFromFlow = edge.type === 'link' && linkData?.sourceIsFlowEdge && linkData?.sourceFlowEdgeId;
+          const isReversed = linkData?.reversed ?? false;
+          
+          // Determine source and target labels
+          let displaySourceLabel: string;
+          let displayTargetLabel: string;
+          let displaySourceIsFlow = false;
+          let displayTargetIsFlow = false;
+          
+          if (isLinkFromFlow) {
+            // Link originates from a Flow edge
+            const nodeLabel = nodeLabels.get(edge.source) || edge.source;
+            const flowLabel = flowEdgeLabels.get(linkData!.sourceFlowEdgeId!) || 'Flow';
+            
+            if (isReversed) {
+              // Reversed: Node → Flow
+              displaySourceLabel = nodeLabel;
+              displayTargetLabel = flowLabel;
+              displayTargetIsFlow = true;
+            } else {
+              // Normal: Flow → Node
+              displaySourceLabel = flowLabel;
+              displayTargetLabel = nodeLabel;
+              displaySourceIsFlow = true;
+            }
+          } else if (isLinkToFlow) {
+            const nodeLabel = nodeLabels.get(edge.source) || edge.source;
+            const flowLabel = flowEdgeLabels.get(linkData!.targetFlowEdgeId!) || 'Flow';
+            
+            if (isReversed) {
+              // Reversed: Flow → Node
+              displaySourceLabel = flowLabel;
+              displayTargetLabel = nodeLabel;
+              displaySourceIsFlow = true;
+            } else {
+              // Normal: Node → Flow
+              displaySourceLabel = nodeLabel;
+              displayTargetLabel = flowLabel;
+              displayTargetIsFlow = true;
+            }
+          } else {
+            displaySourceLabel = nodeLabels.get(edge.source) || edge.source;
+            displayTargetLabel = nodeLabels.get(edge.target) || edge.target;
+          }
+          
           const arrowSymbol = getArrowSymbol(edge);
           const edgeType = getEdgeTypeLabel(edge);
           const arrowClass = getArrowClass(edge);
@@ -76,19 +133,19 @@ export function ConnectionsPanel() {
               {/* Connection visualization */}
               <div className={`${panelStyles.itemRow} ${styles.connectionRow}`}>
                 <span
-                  className={styles.nodeLabel}
-                  title={sourceLabel}
+                  className={`${styles.nodeLabel} ${displaySourceIsFlow ? styles.flowTarget : ''}`}
+                  title={displaySourceLabel}
                 >
-                  {sourceLabel}
+                  {displaySourceIsFlow ? `⚙ ${displaySourceLabel}` : displaySourceLabel}
                 </span>
                 <span className={`${styles.arrowSymbol} ${arrowClass}`}>
                   {arrowSymbol}
                 </span>
                 <span
-                  className={styles.nodeLabel}
-                  title={targetLabel}
+                  className={`${styles.nodeLabel} ${displayTargetIsFlow ? styles.flowTarget : ''}`}
+                  title={displayTargetLabel}
                 >
-                  {targetLabel}
+                  {displayTargetIsFlow ? `⚙ ${displayTargetLabel}` : displayTargetLabel}
                 </span>
               </div>
 
@@ -97,6 +154,16 @@ export function ConnectionsPanel() {
                 <span className={`${panelStyles.badge} ${edge.type === 'flow' ? panelStyles.badgeFlow : panelStyles.badgeLink}`}>
                   {edgeType}
                 </span>
+                {isLinkFromFlow && (
+                  <span className={`${panelStyles.badge} ${panelStyles.badgeSecondary}`}>
+                    {isReversed ? '→ Flow' : '← Flow'}
+                  </span>
+                )}
+                {isLinkToFlow && (
+                  <span className={`${panelStyles.badge} ${panelStyles.badgeSecondary}`}>
+                    {isReversed ? '← Flow' : '→ Flow'}
+                  </span>
+                )}
                 {isBidirectional && (
                   <span className={`${panelStyles.badge} ${panelStyles.badgeSecondary}`}>
                     Bidirectional

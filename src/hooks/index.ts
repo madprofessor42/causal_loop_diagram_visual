@@ -11,4 +11,6 @@ export { useNodeLabelsMap } from './useNodeLabelsMap';
 export { useDiagramDragDrop } from './useDiagramDragDrop';
 export { useConnectionHandlers } from './useConnectionHandlers';
 export { useParallelEdges } from './useParallelEdges';
+export { useFlowEdgeMidpoint } from './useFlowEdgeMidpoint';
+export { useFlowConnection } from './useFlowConnection';
 

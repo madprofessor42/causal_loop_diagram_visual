@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { applyNodeChanges, applyEdgeChanges } from '@xyflow/react';
 import type { NodeChange, EdgeChange } from '@xyflow/react';
-import type { CLDNode, CLDEdge, BaseNodeData, BaseEdgeData } from '../../types';
+import type { CLDNode, CLDEdge, BaseNodeData, BaseEdgeData, LinkEdgeData } from '../../types';
 
 interface DiagramState {
   nodes: CLDNode[];
@@ -18,13 +18,47 @@ const initialState: DiagramState = {
 };
 
 /**
- * Find existing edge between two nodes (in either direction)
+ * Find existing link between node/flow endpoints
  */
-function findExistingEdge(edges: CLDEdge[], source: string, target: string, type: string) {
-  // Find reverse edge (target -> source with same type)
-  return edges.find(
-    e => e.source === target && e.target === source && e.type === type
-  );
+function findExistingFlowLink(
+  edges: CLDEdge[],
+  sourceFlowId: string | undefined,
+  sourceNodeId: string | undefined,
+  targetFlowId: string | undefined,
+  targetNodeId: string | undefined
+): CLDEdge | undefined {
+  return edges.find(e => {
+    if (e.type !== 'link') return false;
+    const data = e.data as LinkEdgeData | undefined;
+    
+    // Check source match
+    const edgeSourceFlow = data?.sourceIsFlowEdge ? data.sourceFlowEdgeId : undefined;
+    const edgeSourceNode = data?.sourceIsFlowEdge ? undefined : e.source;
+    if (sourceFlowId !== edgeSourceFlow) return false;
+    if (sourceNodeId !== edgeSourceNode) return false;
+    
+    // Check target match
+    const edgeTargetFlow = data?.targetIsFlowEdge ? data.targetFlowEdgeId : undefined;
+    const edgeTargetNode = data?.targetIsFlowEdge ? undefined : e.target;
+    if (targetFlowId !== edgeTargetFlow) return false;
+    if (targetNodeId !== edgeTargetNode) return false;
+    
+    return true;
+  });
+}
+
+/**
+ * Find reverse link (swap source and target)
+ */
+function findReverseFlowLink(
+  edges: CLDEdge[],
+  sourceFlowId: string | undefined,
+  sourceNodeId: string | undefined,
+  targetFlowId: string | undefined,
+  targetNodeId: string | undefined
+): CLDEdge | undefined {
+  // Swap source and target
+  return findExistingFlowLink(edges, targetFlowId, targetNodeId, sourceFlowId, sourceNodeId);
 }
 
 export const diagramSlice = createSlice({
@@ -55,11 +89,53 @@ export const diagramSlice = createSlice({
     // Edge operations
     addEdge: (state, action: PayloadAction<CLDEdge>) => {
       const newEdge = action.payload;
+      const newLinkData = newEdge.data as LinkEdgeData | undefined;
       
-      // Flow edges with cloud targets can have multiple edges from same source
-      // (they use targetPosition for actual endpoint, target is just self-reference)
+      // Check if this is a Link involving Flow edges
+      const isLinkToFlow = newEdge.type === 'link' && newLinkData?.targetIsFlowEdge;
+      const isLinkFromFlow = newEdge.type === 'link' && newLinkData?.sourceIsFlowEdge;
+      const isFlowLink = isLinkToFlow || isLinkFromFlow;
+      
+      // Flow edges (material flow) with cloud targets
       const isCloudEdge = newEdge.data?.targetIsCloud || newEdge.data?.sourceIsCloud;
       
+      // Prevent self-connections for regular node-to-node edges
+      // Skip this check for:
+      // - Flow links (use self-loop pattern internally)
+      // - Cloud edges (also use self-loop pattern)
+      if (!isFlowLink && !isCloudEdge && newEdge.source === newEdge.target) {
+        return;
+      }
+      
+      if (isFlowLink) {
+        // Extract flow/node IDs
+        const sourceFlowId = isLinkFromFlow ? newLinkData?.sourceFlowEdgeId : undefined;
+        const sourceNodeId = isLinkFromFlow ? undefined : newEdge.source;
+        const targetFlowId = isLinkToFlow ? newLinkData?.targetFlowEdgeId : undefined;
+        const targetNodeId = isLinkToFlow ? undefined : newEdge.target;
+        
+        // Check for existing link in same direction
+        const existingSame = findExistingFlowLink(state.edges, sourceFlowId, sourceNodeId, targetFlowId, targetNodeId);
+        if (existingSame) {
+          return; // Duplicate - don't add
+        }
+        
+        // Check for reverse link - make bidirectional if exists
+        const existingReverse = findReverseFlowLink(state.edges, sourceFlowId, sourceNodeId, targetFlowId, targetNodeId);
+        if (existingReverse) {
+          existingReverse.data = {
+            ...existingReverse.data,
+            bidirectional: true,
+          };
+          return;
+        }
+        
+        // Add the new edge
+        state.edges.push(newEdge);
+        return;
+      }
+      
+      // Standard node-to-node edge handling
       if (!isCloudEdge) {
         // Check for existing edge in same direction
         const existingSameDirection = state.edges.find(
@@ -67,20 +143,15 @@ export const diagramSlice = createSlice({
         );
         
         if (existingSameDirection) {
-          // Edge already exists in same direction, don't add duplicate
-          return;
+          return; // Duplicate
         }
         
-        // Check for existing edge in reverse direction (to make bidirectional)
-        const existingReverse = findExistingEdge(
-          state.edges,
-          newEdge.source,
-          newEdge.target,
-          newEdge.type ?? 'link'
+        // Check for reverse edge - make bidirectional
+        const existingReverse = state.edges.find(
+          e => e.source === newEdge.target && e.target === newEdge.source && e.type === newEdge.type
         );
         
         if (existingReverse) {
-          // Make the existing edge bidirectional instead of creating a new one
           existingReverse.data = {
             ...existingReverse.data,
             bidirectional: true,
@@ -100,17 +171,52 @@ export const diagramSlice = createSlice({
     },
     removeEdge: (state, action: PayloadAction<string>) => {
       const edgeId = action.payload;
-      state.edges = state.edges.filter(e => e.id !== edgeId);
+      const edgeToRemove = state.edges.find(e => e.id === edgeId);
+      
+      // If removing a Flow edge, also remove any Links that connect to/from this Flow
+      if (edgeToRemove?.type === 'flow') {
+        state.edges = state.edges.filter(e => {
+          if (e.id === edgeId) return false;
+          // Remove Links that target or originate from this Flow edge
+          if (e.type === 'link') {
+            const linkData = e.data as LinkEdgeData;
+            if (linkData?.targetIsFlowEdge && linkData?.targetFlowEdgeId === edgeId) {
+              return false;
+            }
+            if (linkData?.sourceIsFlowEdge && linkData?.sourceFlowEdgeId === edgeId) {
+              return false;
+            }
+          }
+          return true;
+        });
+      } else {
+        state.edges = state.edges.filter(e => e.id !== edgeId);
+      }
+      
       // Clear selection if this edge was selected
       state.selectedEdgeIds = state.selectedEdgeIds.filter(id => id !== edgeId);
     },
     
-    // Reverse edge direction (swap source and target)
+    // Reverse edge direction (swap source and target, or toggle reversed flag for Links to/from Flow)
     reverseEdgeDirection: (state, action: PayloadAction<string>) => {
       const edgeIndex = state.edges.findIndex(e => e.id === action.payload);
       if (edgeIndex === -1) return;
       
       const edge = state.edges[edgeIndex];
+      
+      // Special handling for Links that connect to/from Flow edges
+      // These use a self-loop structure, so we toggle a "reversed" flag instead
+      if (edge.type === 'link') {
+        const linkData = edge.data as LinkEdgeData | undefined;
+        if (linkData?.targetIsFlowEdge || linkData?.sourceIsFlowEdge) {
+          // Toggle the reversed flag
+          edge.data = {
+            ...edge.data,
+            reversed: !linkData?.reversed,
+          };
+          return;
+        }
+      }
       
       // Create a new edge with swapped source/target
       const reversedData: Record<string, unknown> = { ...edge.data };
@@ -161,12 +267,36 @@ export const diagramSlice = createSlice({
       }
     },
     onEdgesChange: (state, action: PayloadAction<EdgeChange<CLDEdge>[]>) => {
-      // Check for removed edges to clear selection
+      // Check for removed edges to clear selection and cascade delete Links to Flow
       const removedEdgeIds = action.payload
         .filter(change => change.type === 'remove')
         .map(change => change.id);
       
+      // Find Flow edges being removed (to cascade delete their connected Links)
+      const removedFlowEdgeIds = removedEdgeIds.filter(id => {
+        const edge = state.edges.find(e => e.id === id);
+        return edge?.type === 'flow';
+      });
+      
       state.edges = applyEdgeChanges(action.payload, state.edges) as CLDEdge[];
+      
+      // Cascade: remove Links connected to removed Flow edges
+      if (removedFlowEdgeIds.length > 0) {
+        state.edges = state.edges.filter(e => {
+          if (e.type === 'link') {
+            const linkData = e.data as LinkEdgeData;
+            // Check if link targets a removed flow
+            if (linkData?.targetIsFlowEdge && linkData?.targetFlowEdgeId) {
+              if (removedFlowEdgeIds.includes(linkData.targetFlowEdgeId)) return false;
+            }
+            // Check if link originates from a removed flow
+            if (linkData?.sourceIsFlowEdge && linkData?.sourceFlowEdgeId) {
+              if (removedFlowEdgeIds.includes(linkData.sourceFlowEdgeId)) return false;
+            }
+          }
+          return true;
+        });
+      }
       
       // Clear selection for removed edges
       if (removedEdgeIds.length > 0) {

@@ -38,3 +38,9 @@
   font-style: italic;
 }
 
+/* Flow target label (for Links that connect to Flow edges) */
+.flowTarget {
+  color: #166534;
+  font-style: italic;
+}
+

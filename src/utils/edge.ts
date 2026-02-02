@@ -24,6 +24,52 @@ function getNodeDimensions(node: Node): { width: number; height: number } {
 const BORDER_OFFSET = 3;
 
 /**
+ * Get the point where a line from a target point intersects a node's boundary
+ * Used for drawing links to/from Flow edges
+ */
+export function getNodeBoundaryPoint(
+  nodeCenterX: number,
+  nodeCenterY: number,
+  nodeWidth: number,
+  nodeHeight: number,
+  targetX: number,
+  targetY: number,
+  shape: 'rect' | 'ellipse'
+): { x: number; y: number } {
+  const angle = Math.atan2(targetY - nodeCenterY, targetX - nodeCenterX);
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  
+  if (shape === 'rect') {
+    const halfWidth = nodeWidth / 2;
+    const halfHeight = nodeHeight / 2;
+    const tanAngle = Math.abs(sin / cos);
+    const edgeTan = halfHeight / halfWidth;
+    
+    let x: number, y: number;
+    if (tanAngle <= edgeTan && Math.abs(cos) > 1e-10) {
+      x = cos > 0 ? halfWidth : -halfWidth;
+      y = x * (sin / cos);
+    } else {
+      y = sin > 0 ? halfHeight : -halfHeight;
+      x = y * (cos / sin);
+    }
+    
+    return {
+      x: nodeCenterX + x + cos * BORDER_OFFSET,
+      y: nodeCenterY + y + sin * BORDER_OFFSET,
+    };
+  } else {
+    const rx = nodeWidth / 2;
+    const ry = nodeHeight / 2;
+    return {
+      x: nodeCenterX + rx * cos + cos * BORDER_OFFSET,
+      y: nodeCenterY + ry * sin + sin * BORDER_OFFSET,
+    };
+  }
+}
+
+/**
  * Calculate intersection of a parallel line with node boundary
  * The line passes through (centerX + perpOffsetX, centerY + perpOffsetY) at given angle
  * 

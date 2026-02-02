@@ -52,6 +52,10 @@
   font-weight: 600;
 }
 
+.flowBadge {
+  background-color: #166534 !important;
+}
+
 .loopPath {
   padding: 8px;
   background-color: white;

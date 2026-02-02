@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { useStore, useReactFlow, type EdgeProps } from '@xyflow/react';
+import { useStore, useReactFlow, useConnection, type EdgeProps } from '@xyflow/react';
 import { getStraightEdgeParams } from '../../utils/edge';
 import { useEdgeHighlight, useParallelEdges } from '../../hooks';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { selectConnectionMode, uiActions } from '../../store/slices/uiSlice';
 import {
   renderHitbox,
   renderEdgeOutline,
@@ -46,6 +48,7 @@ const CLOUD_HITBOX_SIZE = 40;
  * Clouds are draggable to reposition
  */
 function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }: FlowEdgeProps) {
+  const dispatch = useAppDispatch();
   const sourceNode = useStore((store) => store.nodeLookup.get(source));
   const targetNode = useStore((store) => store.nodeLookup.get(target));
   const { screenToFlowPosition } = useReactFlow();
@@ -59,6 +62,14 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
   
   // Calculate offset for parallel edges (if there's a Link edge between same nodes)
   const { offset: parallelOffset } = useParallelEdges(id, source, target, 'flow');
+  
+  // Connection state - detect when a Link can be connected to this Flow
+  const connection = useConnection();
+  const connectionMode = useAppSelector(selectConnectionMode);
+  const isLinkConnectionInProgress = connection.inProgress && connectionMode === 'link';
+  
+  // Hover state for valve (when Link can be connected)
+  const [isHoveringValve, setIsHoveringValve] = useState(false);
 
 
   const edgeData = data as FlowEdgeData | undefined;
@@ -112,7 +123,7 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
     setIsDraggingCloud(cloudType);
     dragStartRef.current = { x: event.clientX, y: event.clientY };
   };
-
+  
   // Calculate edge points
   let sx: number, sy: number, tx: number, ty: number;
   
@@ -315,17 +326,58 @@ function FlowEdge({ id, source, target, style, data, selected, updateEdgeData }:
         style={{ ...style, stroke: FLOW_EDGE.lineColor }}
       />
       
-      {/* Valve indicator at midpoint (always in original color) */}
+      {/* Valve indicator at midpoint */}
+      {/* Highlight when a Link connection can be made */}
       <line
         x1={valve1X}
         y1={valve1Y}
         x2={valve2X}
         y2={valve2Y}
         strokeWidth={FLOW_EDGE.strokeWidth}
-        stroke={FLOW_EDGE.color}
+        stroke={isLinkConnectionInProgress && isHoveringValve ? '#3b82f6' : FLOW_EDGE.color}
         strokeLinecap="round"
-        className={styles.mainPath}
+        className={`${styles.mainPath} ${isLinkConnectionInProgress ? styles.valveConnectable : ''}`}
       />
+      
+      {/* Visible connection handle at valve - only shown when Link mode is active */}
+      {connectionMode === 'link' && (
+        <circle
+          cx={midX}
+          cy={midY}
+          r={8}
+          fill={isHoveringValve ? '#e0e7ff' : 'white'}
+          stroke={isHoveringValve ? '#3b82f6' : FLOW_EDGE.color}
+          strokeWidth={2}
+          className={styles.flowHandle}
+          data-flow-handle={id}
+          data-flow-id={id}
+          onMouseEnter={() => setIsHoveringValve(true)}
+          onMouseLeave={() => setIsHoveringValve(false)}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const cursorPosition = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+            dispatch(uiActions.startFlowConnection({
+              flowEdgeId: id,
+              cursorPosition,
+              screenPosition: { x: e.clientX, y: e.clientY },
+            }));
+          }}
+        />
+      )}
+      
+      {/* Invisible hitbox for valve - larger area for easier hovering during Link connection */}
+      {isLinkConnectionInProgress && (
+        <circle
+          cx={midX}
+          cy={midY}
+          r={valveSize + 10}
+          fill="transparent"
+          className={styles.valveHitbox}
+          onMouseEnter={() => setIsHoveringValve(true)}
+          onMouseLeave={() => setIsHoveringValve(false)}
+        />
+      )}
       
       {/* Filled arrowhead at target (always in original color) */}
       <path

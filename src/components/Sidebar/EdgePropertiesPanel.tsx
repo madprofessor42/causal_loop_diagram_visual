@@ -27,6 +27,16 @@ export function EdgePropertiesPanel() {
   const edgeData = selectedEdge.data as (FlowEdgeData | LinkEdgeData) | undefined;
   const isBidirectional = edgeData?.bidirectional ?? false;
   const isFlow = selectedEdge.type === 'flow';
+  const isLink = selectedEdge.type === 'link';
+  
+  // Check if this is a Link connected to a Flow edge
+  const linkData = isLink ? (edgeData as LinkEdgeData | undefined) : undefined;
+  const isLinkToFlow = linkData?.targetIsFlowEdge ?? false;
+  const isLinkFromFlow = linkData?.sourceIsFlowEdge ?? false;
+  const isLinkConnectedToFlow = isLinkToFlow || isLinkFromFlow;
+  
+  // Flow-specific data
+  const flowData = isFlow ? (edgeData as FlowEdgeData | undefined) : undefined;
   
   const handleClose = () => {
     dispatch(uiActions.setSelectedEdge(null));
@@ -54,7 +64,7 @@ export function EdgePropertiesPanel() {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.title}>
-          {isFlow ? 'Flow' : 'Link'} Edge
+          {isFlow ? 'Flow Properties' : 'Link Edge'}
         </div>
         <button onClick={handleClose} className={styles.closeButton}>
           ×
@@ -63,8 +73,8 @@ export function EdgePropertiesPanel() {
       
       {/* Edge info */}
       <div className={styles.info}>
-        <Badge variant="neutral">{isFlow ? 'Flow' : 'Link'}</Badge>
-        <div className={styles.infoText}>ID: {selectedEdge.id.slice(0, 20)}...</div>
+        <Badge variant={isFlow ? 'flow' : 'neutral'}>{isFlow ? 'Flow' : 'Link'}</Badge>
+        {flowData?.name && <span className={styles.infoName}>{flowData.name}</span>}
       </div>
       
       {/* Direction controls */}
@@ -90,11 +100,73 @@ export function EdgePropertiesPanel() {
             ⇄ Reverse Direction
           </button>
         )}
+        
+        {/* Info about current direction for Links connected to Flow */}
+        {isLinkConnectedToFlow && (
+          <div className={styles.infoText}>
+            {(() => {
+              // For Links TO Flow: normal = Node→Flow, reversed = Flow→Node
+              // For Links FROM Flow: normal = Flow→Node, reversed = Node→Flow
+              if (isLinkToFlow) {
+                return linkData?.reversed ? 'Direction: Flow → Node' : 'Direction: Node → Flow';
+              } else {
+                return linkData?.reversed ? 'Direction: Node → Flow' : 'Direction: Flow → Node';
+              }
+            })()}
+          </div>
+        )}
       </div>
       
-      {/* Label input */}
+      {/* Flow-specific fields */}
+      {isFlow && (
+        <>
+          {/* Name field - used in formulas */}
+          <FormField
+            label="Name"
+            value={flowData?.name ?? ''}
+            onChange={(value) => {
+              dispatch(diagramActions.updateEdgeData({
+                id: selectedEdge.id,
+                data: { name: value || undefined },
+              }));
+            }}
+            placeholder="e.g., Births, Infections..."
+            hint="Used in formulas as [Name]"
+          />
+          
+          {/* Rate/Formula field */}
+          <FormField
+            label="Rate / Formula"
+            value={flowData?.rate ?? ''}
+            onChange={(value) => {
+              dispatch(diagramActions.updateEdgeData({
+                id: selectedEdge.id,
+                data: { rate: value || undefined },
+              }));
+            }}
+            placeholder="e.g., 10 or [Stock] * 0.1"
+            hint="Use [NodeName] to reference other primitives"
+            monospace
+          />
+          
+          {/* Units field */}
+          <FormField
+            label="Units"
+            value={flowData?.units ?? ''}
+            onChange={(value) => {
+              dispatch(diagramActions.updateEdgeData({
+                id: selectedEdge.id,
+                data: { units: value || undefined },
+              }));
+            }}
+            placeholder="e.g., people/year, kg/day"
+          />
+        </>
+      )}
+      
+      {/* Label input (for display, different from Name) */}
       <FormField
-        label="Label"
+        label={isFlow ? "Display Label" : "Label"}
         value={edgeData?.label ?? ''}
         onChange={(value) => {
           dispatch(diagramActions.updateEdgeData({
@@ -104,6 +176,23 @@ export function EdgePropertiesPanel() {
         }}
         placeholder="Enter label..."
       />
+      
+      {/* Notes field - for Flow only (Link doesn't need extensive notes) */}
+      {isFlow && (
+        <FormField
+          label="Notes"
+          type="textarea"
+          value={flowData?.notes ?? ''}
+          onChange={(value) => {
+            dispatch(diagramActions.updateEdgeData({
+              id: selectedEdge.id,
+              data: { notes: value || undefined },
+            }));
+          }}
+          placeholder="Add description or notes..."
+          rows={4}
+        />
+      )}
       
       {/* Delete button */}
       <button onClick={handleDelete} className={`${styles.button} ${styles.buttonDanger}`}>

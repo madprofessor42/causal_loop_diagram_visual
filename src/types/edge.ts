@@ -19,18 +19,29 @@ export interface BaseEdgeData extends Record<string, unknown> {
 /**
  * Link edge data - information connection (dashed line)
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface LinkEdgeData extends BaseEdgeData {
-  // Link is a simple information connection
+  /** If true, this Link connects to a Flow edge (not a node) */
+  targetIsFlowEdge?: boolean;
+  /** The Flow edge ID when targetIsFlowEdge is true */
+  targetFlowEdgeId?: string;
+  /** If true, this Link originates from a Flow edge (not a node) */
+  sourceIsFlowEdge?: boolean;
+  /** The Flow edge ID when sourceIsFlowEdge is true */
+  sourceFlowEdgeId?: string;
+  /** If true, the visual direction is reversed (for Links to/from Flow edges) */
+  reversed?: boolean;
 }
 
 /**
- * Flow edge data - material flow between Stocks
+ * Flow edge data - material flow between Stocks (semi-primitive)
+ * Flow can receive Link connections and has editable properties like nodes
  */
 export interface FlowEdgeData extends BaseEdgeData {
-  /** Flow rate formula or constant */
+  /** Name of the flow (used in formulas as [Name]) */
+  name?: string;
+  /** Flow rate formula or constant (e.g., "10", "[Stock] * 0.1") */
   rate?: string;
-  /** Units for the flow */
+  /** Units for the flow (e.g., "people/year") */
   units?: string;
   /** If true, draw cloud icon at source (flow from "nowhere") */
   sourceIsCloud?: boolean;

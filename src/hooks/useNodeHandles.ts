@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useConnection } from '@xyflow/react';
 import { useSelector } from 'react-redux';
-import { selectConnectionMode } from '../store/slices/uiSlice';
+import { selectConnectionMode, selectFlowConnection } from '../store/slices/uiSlice';
 
 /**
  * Hook для управления handles ноды
@@ -14,13 +14,15 @@ export function useNodeHandles(nodeType: 'stock' | 'variable') {
   const [isHoveringHandle, setIsHoveringHandle] = useState(false);
   const connection = useConnection();
   const connectionMode = useSelector(selectConnectionMode);
+  const flowConnection = useSelector(selectFlowConnection);
   
   // У Stock всегда показывать center handle
   // У Variable - только в link mode
   const showCenterHandle = nodeType === 'stock' || connectionMode === 'link';
   
   // Проверяем, идет ли сейчас процесс создания connection
-  const isConnecting = connection.inProgress;
+  // Включаем как React Flow connections, так и наш custom flow connection
+  const isConnecting = connection.inProgress || flowConnection !== null;
   
   // Variable НЕ может быть target в flow mode (только Stock -> Stock в flow)
   const canBeTarget = nodeType === 'stock' || connectionMode === 'link';

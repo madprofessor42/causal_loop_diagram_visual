@@ -1,6 +1,6 @@
 import { useStore, type EdgeProps } from '@xyflow/react';
-import { getStraightEdgeParams } from '../../utils/edge';
-import { useEdgeHighlight, useParallelEdges } from '../../hooks';
+import { getStraightEdgeParams, getNodeBoundaryPoint } from '../../utils/edge';
+import { useEdgeHighlight, useParallelEdges, useFlowEdgeMidpoint } from '../../hooks';
 import {
   renderHitbox,
   renderEdgeOutline,
@@ -9,9 +9,7 @@ import {
   calculateArrowPoints,
 } from '../../utils/edgeRendering';
 import type { LinkEdgeData } from '../../types';
-import {
-  LINK_EDGE,
-} from '../../constants';
+import { LINK_EDGE } from '../../constants';
 import styles from './LinkEdge.module.css';
 
 export type UpdateEdgeData = (edgeId: string, data: Partial<LinkEdgeData>) => void;
@@ -20,75 +18,44 @@ interface LinkEdgeProps extends EdgeProps {
   updateEdgeData?: UpdateEdgeData;
 }
 
-// Invisible hitbox width for easier clicking
 const HITBOX_WIDTH = 20;
 
-/**
- * LinkEdge - Information connection (dashed straight line with arrow)
- * Supports bidirectional arrows when data.bidirectional is true
- */
-function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) {
-  const sourceNode = useStore((store) => store.nodeLookup.get(source));
-  const targetNode = useStore((store) => store.nodeLookup.get(target));
-  
-  // Use custom hook for highlight logic
-  const { highlightColor, shouldShowOutline, outlineWidth } = useEdgeHighlight(id, selected);
-  
-  // Calculate offset for parallel edges (if there's a Flow edge between same nodes)
-  const { offset } = useParallelEdges(id, source, target, 'link');
-
-  if (!sourceNode || !targetNode) {
-    return null;
-  }
-
-  const edgeData = data as LinkEdgeData | undefined;
-  const isBidirectional = edgeData?.bidirectional ?? false;
-  
-  // Get edge params with perpendicular offset applied during calculation
-  // This ensures edge points are correctly positioned on node boundaries
-  const { sx, sy, tx, ty } = getStraightEdgeParams(sourceNode, targetNode, offset);
-
-  // Calculate angle for arrow direction
-  const angle = Math.atan2(ty - sy, tx - sx);
-  
-  // Start and end points are already correctly positioned
-  const startX = sx;
-  const startY = sy;
-  const endX = tx;
-  const endY = ty;
-
-  // Straight line path (with offset)
+/** Render the link edge with calculated endpoints */
+function renderLinkEdge(
+  id: string,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  showStartArrow: boolean,
+  showEndArrow: boolean,
+  label: string | undefined,
+  shouldShowOutline: boolean,
+  highlightColor: string | null,
+  outlineWidth: number,
+  style?: React.CSSProperties
+) {
   const edgePath = `M ${startX},${startY} L ${endX},${endY}`;
-
-  // Calculate arrow points using utility function
-  const targetArrow = calculateArrowPoints(endX, endY, angle, LINK_EDGE.arrowSize);
-  const sourceArrow = calculateArrowPoints(startX, startY, angle, LINK_EDGE.arrowSize, true);
-
-  // Label
-  const label = edgeData?.label;
+  const angle = Math.atan2(endY - startY, endX - startX);
+  
+  const endArrow = calculateArrowPoints(endX, endY, angle, LINK_EDGE.arrowSize);
+  const startArrow = calculateArrowPoints(startX, startY, angle, LINK_EDGE.arrowSize, true);
+  
   const midX = (startX + endX) / 2;
   const midY = (startY + endY) / 2;
 
   return (
     <g className="react-flow__edge">
-      {/* Invisible wide path for easier clicking */}
       {renderHitbox(edgePath, HITBOX_WIDTH, styles.hitbox)}
       
-      {/* Outline layer - drawn first (underneath) when highlighted or selected */}
       {shouldShowOutline && highlightColor && (
         <>
-          {/* Outline for main edge path */}
           {renderEdgeOutline(edgePath, true, highlightColor, outlineWidth, LINK_EDGE.dashArray, styles.outline)}
-          
-          {/* Outline for arrow at target */}
-          {renderArrow(targetArrow.x1, targetArrow.y1, endX, endY, targetArrow.x2, targetArrow.y2, outlineWidth, highlightColor, styles.outline)}
-          
-          {/* Outline for arrow at source - only for bidirectional */}
-          {isBidirectional && renderArrow(sourceArrow.x1, sourceArrow.y1, startX, startY, sourceArrow.x2, sourceArrow.y2, outlineWidth, highlightColor, styles.outline)}
+          {showEndArrow && renderArrow(endArrow.x1, endArrow.y1, endX, endY, endArrow.x2, endArrow.y2, outlineWidth, highlightColor, styles.outline)}
+          {showStartArrow && renderArrow(startArrow.x1, startArrow.y1, startX, startY, startArrow.x2, startArrow.y2, outlineWidth, highlightColor, styles.outline)}
         </>
       )}
       
-      {/* Main edge path - dashed line for Link (always in original color) */}
       <path
         id={id}
         className={`react-flow__edge-path ${styles.mainPath}`}
@@ -101,17 +68,115 @@ function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) 
         style={{ ...style, stroke: LINK_EDGE.color, strokeWidth: LINK_EDGE.strokeWidth }}
       />
       
-      {/* Arrow at target (always in original color) */}
-      {renderArrow(targetArrow.x1, targetArrow.y1, endX, endY, targetArrow.x2, targetArrow.y2, LINK_EDGE.strokeWidth, LINK_EDGE.color, styles.mainPath)}
+      {showEndArrow && renderArrow(endArrow.x1, endArrow.y1, endX, endY, endArrow.x2, endArrow.y2, LINK_EDGE.strokeWidth, LINK_EDGE.color, styles.mainPath)}
+      {showStartArrow && renderArrow(startArrow.x1, startArrow.y1, startX, startY, startArrow.x2, startArrow.y2, LINK_EDGE.strokeWidth, LINK_EDGE.color, styles.mainPath)}
       
-      {/* Arrow at source - only for bidirectional (always in original color) */}
-      {isBidirectional && renderArrow(sourceArrow.x1, sourceArrow.y1, startX, startY, sourceArrow.x2, sourceArrow.y2, LINK_EDGE.strokeWidth, LINK_EDGE.color, styles.mainPath)}
-      
-      {/* Label if present */}
       {renderEdgeLabel(label, midX, midY, LINK_EDGE.color, styles.labelText, styles.labelBg)}
     </g>
   );
 }
 
-// Export without memo to ensure re-renders when parallel edges change
+/**
+ * LinkEdge - Information connection (dashed straight line with arrow)
+ */
+function LinkEdge({ id, source, target, style, data, selected }: LinkEdgeProps) {
+  const sourceNode = useStore((store) => store.nodeLookup.get(source));
+  const targetNode = useStore((store) => store.nodeLookup.get(target));
+  
+  const { highlightColor, shouldShowOutline, outlineWidth } = useEdgeHighlight(id, selected);
+
+  const edgeData = data as LinkEdgeData | undefined;
+  const isBidirectional = edgeData?.bidirectional ?? false;
+  const isReversed = edgeData?.reversed ?? false;
+  const label = edgeData?.label;
+  
+  // Flow edge connection info
+  const targetIsFlow = edgeData?.targetIsFlowEdge ?? false;
+  const sourceIsFlow = edgeData?.sourceIsFlowEdge ?? false;
+  const targetFlowMidpoint = useFlowEdgeMidpoint(targetIsFlow ? edgeData?.targetFlowEdgeId ?? '' : '');
+  const sourceFlowMidpoint = useFlowEdgeMidpoint(sourceIsFlow ? edgeData?.sourceFlowEdgeId ?? '' : '');
+  
+  // Parallel edge offset (only for node-to-node)
+  const { offset } = useParallelEdges(id, source, target, 'link');
+
+  // Calculate start and end points based on connection type
+  let startX: number, startY: number, endX: number, endY: number;
+  
+  // Flow → Flow
+  if (sourceIsFlow && targetIsFlow) {
+    if (!sourceFlowMidpoint || !targetFlowMidpoint) return null;
+    
+    startX = sourceFlowMidpoint.x;
+    startY = sourceFlowMidpoint.y;
+    endX = targetFlowMidpoint.x;
+    endY = targetFlowMidpoint.y;
+  }
+  // Node → Flow
+  else if (targetIsFlow) {
+    if (!sourceNode || !targetFlowMidpoint) return null;
+    
+    const nodeWidth = sourceNode.measured?.width ?? 100;
+    const nodeHeight = sourceNode.measured?.height ?? 60;
+    const nodeCenterX = sourceNode.position.x + nodeWidth / 2;
+    const nodeCenterY = sourceNode.position.y + nodeHeight / 2;
+    
+    const boundary = getNodeBoundaryPoint(
+      nodeCenterX, nodeCenterY, nodeWidth, nodeHeight,
+      targetFlowMidpoint.x, targetFlowMidpoint.y,
+      sourceNode.type === 'stock' ? 'rect' : 'ellipse'
+    );
+    
+    startX = boundary.x;
+    startY = boundary.y;
+    endX = targetFlowMidpoint.x;
+    endY = targetFlowMidpoint.y;
+  }
+  // Flow → Node
+  else if (sourceIsFlow) {
+    if (!sourceNode || !sourceFlowMidpoint) return null;
+    
+    const nodeWidth = sourceNode.measured?.width ?? 100;
+    const nodeHeight = sourceNode.measured?.height ?? 60;
+    const nodeCenterX = sourceNode.position.x + nodeWidth / 2;
+    const nodeCenterY = sourceNode.position.y + nodeHeight / 2;
+    
+    const boundary = getNodeBoundaryPoint(
+      nodeCenterX, nodeCenterY, nodeWidth, nodeHeight,
+      sourceFlowMidpoint.x, sourceFlowMidpoint.y,
+      sourceNode.type === 'stock' ? 'rect' : 'ellipse'
+    );
+    
+    startX = sourceFlowMidpoint.x;
+    startY = sourceFlowMidpoint.y;
+    endX = boundary.x;
+    endY = boundary.y;
+  }
+  // Node → Node
+  else {
+    if (!sourceNode || !targetNode) return null;
+    
+    const params = getStraightEdgeParams(sourceNode, targetNode, offset);
+    startX = params.sx;
+    startY = params.sy;
+    endX = params.tx;
+    endY = params.ty;
+  }
+
+  // Handle reversed direction
+  if (isReversed) {
+    [startX, endX] = [endX, startX];
+    [startY, endY] = [endY, startY];
+  }
+
+  // Determine arrow visibility
+  const showEndArrow = true;  // Always show arrow at end
+  const showStartArrow = isBidirectional;  // Show at start only if bidirectional
+
+  return renderLinkEdge(
+    id, startX, startY, endX, endY,
+    showStartArrow, showEndArrow, label,
+    shouldShowOutline, highlightColor, outlineWidth, style
+  );
+}
+
 export default LinkEdge;

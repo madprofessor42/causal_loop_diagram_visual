@@ -45,6 +45,9 @@ import {
   selectGhostPosition,
   selectConnectionMode,
 } from '../../store/slices/uiSlice';
+import { useFlowConnection } from '../../hooks';
+import { findFlowEdgeAtPoint } from '../../utils/domUtils';
+import type { LinkEdgeData } from '../../types';
 
 export function DiagramCanvas() {
   const dispatch = useAppDispatch();
@@ -56,6 +59,9 @@ export function DiagramCanvas() {
   
   const { screenToFlowPosition } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  
+  // Use the flow connection hook for dragging from Flow edges
+  const { previewLine: flowConnectionPreview } = useFlowConnection();
   
   // Store source node info for cloud edge creation
   const sourceNodeIdRef = useRef<string | null>(null);
@@ -103,16 +109,21 @@ export function DiagramCanvas() {
     [dispatch]
   );
   
-  // Update edge data via Redux
+  // Update edge data via Redux - use ref to avoid recreating edge types
+  const updateEdgeDataRef = useRef<(edgeId: string, newData: Partial<BaseEdgeData>) => void>(undefined);
+  updateEdgeDataRef.current = (edgeId: string, newData: Partial<BaseEdgeData>) => {
+    dispatch(diagramActions.updateEdgeData({ id: edgeId, data: newData }));
+  };
+  
+  // Stable updateEdgeData function that uses ref
   const updateEdgeData = useCallback(
     (edgeId: string, newData: Partial<BaseEdgeData>) => {
-      dispatch(diagramActions.updateEdgeData({ id: edgeId, data: newData }));
+      updateEdgeDataRef.current?.(edgeId, newData);
     },
-    [dispatch]
+    []
   );
   
-  // Create edge types with updateEdgeData bound
-  // Include edges.length as dependency to force re-render when edges change
+  // Create edge types with stable reference - defined once
   const edgeTypesWithUpdate = useMemo(() => ({
     link: (props: React.ComponentProps<typeof LinkEdge>) => (
       <LinkEdge {...props} updateEdgeData={updateEdgeData} />
@@ -120,7 +131,7 @@ export function DiagramCanvas() {
     flow: (props: React.ComponentProps<typeof FlowEdge>) => (
       <FlowEdge {...props} updateEdgeData={updateEdgeData} />
     ),
-  }), [updateEdgeData, edges.length]);
+  }), [updateEdgeData]);
 
   // Track connection start
   const onConnectStart: OnConnectStart = useCallback(
@@ -137,6 +148,9 @@ export function DiagramCanvas() {
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target) return;
+      
+      // Prevent self-connections
+      if (connection.source === connection.target) return;
       
       // For flow mode, only allow stock-to-stock connections
       if (connectionMode === 'flow') {
@@ -167,6 +181,7 @@ export function DiagramCanvas() {
   );
 
   // Handle connection end - create flow with cloud when dropped on canvas
+  // OR create Link to Flow edge when in link mode
   const onConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent) => {
       const sourceNodeId = sourceNodeIdRef.current;
@@ -176,7 +191,36 @@ export function DiagramCanvas() {
       sourceNodeIdRef.current = null;
       sourceNodeTypeRef.current = null;
       
-      // Only handle flow mode and only from stock nodes
+      // Get drop position
+      const clientX = 'touches' in event ? event.touches[0]?.clientX : event.clientX;
+      const clientY = 'touches' in event ? event.touches[0]?.clientY : event.clientY;
+
+      if (clientX === undefined || clientY === undefined) {
+        return;
+      }
+      
+      // === Handle Link mode: check if dropping on a Flow edge ===
+      if (connectionMode === 'link' && sourceNodeId) {
+        const flowEdgeId = findFlowEdgeAtPoint(clientX, clientY, edges);
+        
+        if (flowEdgeId) {
+          // Create Link from Node to Flow
+          const newLink: CLDEdge<LinkEdgeData> = {
+            id: `link_${sourceNodeId}_flow_${flowEdgeId}_${Date.now()}`,
+            source: sourceNodeId,
+            target: sourceNodeId,  // Self-loop for React Flow
+            type: 'link',
+            data: {
+              targetIsFlowEdge: true,
+              targetFlowEdgeId: flowEdgeId,
+            },
+          };
+          dispatch(diagramActions.addEdge(newLink));
+          return;
+        }
+      }
+      
+      // === Handle Flow mode: create cloud edge when dropped on canvas ===
       if (connectionMode !== 'flow' || !sourceNodeId || sourceNodeType !== 'stock') {
         return;
       }
@@ -189,23 +233,14 @@ export function DiagramCanvas() {
         return;
       }
 
-      // Get drop position
-      const clientX = 'touches' in event ? event.touches[0]?.clientX : event.clientX;
-      const clientY = 'touches' in event ? event.touches[0]?.clientY : event.clientY;
-
-      if (clientX === undefined || clientY === undefined) {
-        return;
-      }
-
       // Convert to flow position
       const dropPosition = screenToFlowPosition({ x: clientX, y: clientY });
 
       // Create a flow edge with cloud at target
-      // Use sourceNodeId as target (self-reference) but with unique edge ID and targetPosition
       const newEdge: CLDEdge<FlowEdgeData> = {
         id: `edge_${sourceNodeId}_cloud_${Date.now()}`,
         source: sourceNodeId,
-        target: sourceNodeId, // Self-reference, but we use targetPosition for actual endpoint
+        target: sourceNodeId,
         type: 'flow',
         data: {
           targetIsCloud: true,
@@ -215,7 +250,7 @@ export function DiagramCanvas() {
       
       dispatch(diagramActions.addEdge(newEdge));
     },
-    [dispatch, connectionMode, screenToFlowPosition]
+    [dispatch, connectionMode, screenToFlowPosition, edges]
   );
 
   // Drag and Drop handlers for sidebar items
@@ -329,6 +364,31 @@ export function DiagramCanvas() {
           <GhostNode position={ghostPosition} />
         )}
       </ReactFlow>
+      
+      {/* Flow connection preview line (custom overlay) */}
+      {flowConnectionPreview && (
+        <svg
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: 1000,
+          }}
+        >
+          <line
+            x1={flowConnectionPreview.startX}
+            y1={flowConnectionPreview.startY}
+            x2={flowConnectionPreview.endX}
+            y2={flowConnectionPreview.endY}
+            stroke={LINK_EDGE.color}
+            strokeWidth={LINK_EDGE.previewStrokeWidth}
+            strokeDasharray={LINK_EDGE.dashArray}
+          />
+        </svg>
+      )}
     </div>
   );
 }

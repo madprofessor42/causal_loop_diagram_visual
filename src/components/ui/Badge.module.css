@@ -22,6 +22,12 @@
   color: #9a3412;
 }
 
+/* Flow variant - green colors (material flow) */
+.flow {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
 /* Neutral variant - gray colors */
 .neutral {
   background-color: var(--gray-100);

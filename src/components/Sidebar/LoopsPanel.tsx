@@ -2,8 +2,9 @@ import { useMemo } from 'react';
 import { useAppSelector, useAppDispatch } from '../../store/hooks';
 import { selectNodes, selectEdges } from '../../store/slices/diagramSlice';
 import { uiActions } from '../../store/slices/uiSlice';
-import { findCycles } from '../../utils/graph';
+import { findCycles, isFlowVirtualNode, getFlowEdgeIdFromVirtual } from '../../utils/graph';
 import type { Cycle } from '../../utils/graph';
+import type { FlowEdgeData } from '../../types';
 import panelStyles from './Panel.module.css';
 import styles from './LoopsPanel.module.css';
 
@@ -21,6 +22,31 @@ export function LoopsPanel() {
   const nodeLabels = useMemo(() => {
     return new Map(nodes.map(node => [node.id, node.data.label || node.id]));
   }, [nodes]);
+  
+  // Create a map of Flow edge IDs to labels for virtual Flow nodes
+  const flowEdgeLabels = useMemo(() => {
+    return new Map(
+      edges
+        .filter(e => e.type === 'flow')
+        .map(e => {
+          const flowData = e.data as FlowEdgeData | undefined;
+          return [e.id, flowData?.name || flowData?.label || 'Flow'];
+        })
+    );
+  }, [edges]);
+  
+  // Helper to get label for any node ID (real or virtual Flow)
+  const getNodeLabel = (nodeId: string): string => {
+    if (isFlowVirtualNode(nodeId)) {
+      const flowEdgeId = getFlowEdgeIdFromVirtual(nodeId);
+      if (flowEdgeId) {
+        const label = flowEdgeLabels.get(flowEdgeId);
+        return label ? `⚙${label}` : '⚙Flow';
+      }
+      return '⚙Flow';
+    }
+    return nodeLabels.get(nodeId) || nodeId;
+  };
 
   // Helper to get loop polarity symbol
   const getLoopSymbol = (_cycle: Cycle) => {
@@ -36,16 +62,24 @@ export function LoopsPanel() {
 
   // Helper to format loop description
   const formatLoopPath = (cycle: Cycle) => {
-    const labels = cycle.nodeIds.map(nodeId => nodeLabels.get(nodeId) || nodeId);
+    const labels = cycle.nodeIds.map(nodeId => getNodeLabel(nodeId));
     return labels.join(' → ') + ' → ' + labels[0];
   };
 
   // Handle mouse enter on loop item
   const handleLoopMouseEnter = (cycle: Cycle) => {
+    // Filter out virtual Flow nodes for highlighting - only highlight real nodes
+    const realNodeIds = cycle.nodeIds.filter(id => !isFlowVirtualNode(id));
+    
     dispatch(uiActions.setHighlightedLoop({
-      nodeIds: cycle.nodeIds,
+      nodeIds: realNodeIds,
       edgeIds: cycle.edgeIds,
     }));
+  };
+  
+  // Helper to count real nodes in a cycle (excluding virtual Flow nodes)
+  const getRealNodeCount = (cycle: Cycle): number => {
+    return cycle.nodeIds.filter(id => !isFlowVirtualNode(id)).length;
   };
 
   // Handle mouse leave on loop item
@@ -81,8 +115,10 @@ export function LoopsPanel() {
       <div className={panelStyles.panelSection}>
         {cycles.map((cycle, index) => {
           const loopSymbol = getLoopSymbol(cycle);
-          const loopColor = getLoopColor(cycle.length);
+          const realNodeCount = getRealNodeCount(cycle);
+          const loopColor = getLoopColor(realNodeCount);
           const loopPath = formatLoopPath(cycle);
+          const hasFlowInLoop = cycle.nodeIds.some(id => isFlowVirtualNode(id));
 
           return (
             <div
@@ -105,8 +141,13 @@ export function LoopsPanel() {
                       className={styles.loopBadge}
                       style={{ backgroundColor: loopColor }}
                     >
-                      {cycle.length} nodes
+                      {realNodeCount} nodes
                     </span>
+                    {hasFlowInLoop && (
+                      <span className={`${styles.loopBadge} ${styles.flowBadge}`}>
+                        via Flow
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -118,12 +159,12 @@ export function LoopsPanel() {
 
               {/* Loop metadata */}
               <div className={styles.loopMetadata}>
-                {cycle.length === 2 && (
+                {realNodeCount === 2 && (
                   <span className={`${styles.metadataBadge} ${styles.badgeDirectFeedback}`}>
                     Direct Feedback
                   </span>
                 )}
-                {cycle.length > 5 && (
+                {realNodeCount > 5 && (
                   <span className={`${styles.metadataBadge} ${styles.badgeComplexLoop}`}>
                     Complex Loop
                   </span>

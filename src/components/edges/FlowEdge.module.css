@@ -45,3 +45,28 @@
   pointer-events: none;
 }
 
+/* Valve connectable state - when Link can be connected */
+.valveConnectable {
+  cursor: crosshair;
+  transition: stroke 0.15s ease;
+}
+
+/* Valve hitbox for Link connection */
+.valveHitbox {
+  cursor: crosshair;
+  pointer-events: all;
+}
+
+/* Flow connection handle at valve - visible connection point */
+.flowHandle {
+  pointer-events: all;
+  cursor: crosshair;
+  transition: all 0.15s ease;
+}
+
+.flowHandle:hover {
+  fill: #e0e7ff;
+  stroke: #3b82f6;
+  transform-origin: center;
+}
+
